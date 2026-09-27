@@ -1,69 +1,46 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { listCampaigns, requireGM } from "@/lib/dal";
+import { RULESETS } from "@/lib/reference";
+import { TopBar } from "@/components/top-bar";
+import { NewCampaignForm } from "./new-campaign-form";
 
-export default function Home() {
+export const metadata: Metadata = { title: "Campaigns · Designspace" };
+
+export default async function Home() {
+  const gm = await requireGM();
+  const campaigns = await listCampaigns();
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+    <>
+      <TopBar userName={gm.name} />
+      <main className="page" id="main">
+        <h1 className="display">Campaigns</h1>
+        <p className="muted">Each campaign has its own ruleset, references and calendar.</p>
+        <div className="home-grid">
+          <section aria-labelledby="list-h">
+            <h2 id="list-h" className="eyebrow">Your campaigns</h2>
+            {campaigns.length === 0 ? (
+              <p className="empty">No campaigns yet. Create the first one.</p>
+            ) : (
+              <ul className="camps">
+                {campaigns.map((c) => (
+                  <li key={c.id}>
+                    <Link className="camp" href={`/c/${c.id}/wiki`}>
+                      <span className="camp-name">{c.name}</span>
+                      {c.setting && <span className="muted">{c.setting}</span>}
+                      <span className="pill">{RULESETS[c.ruleset]?.short ?? c.ruleset}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section className="card stack" aria-labelledby="new-h">
+            <h2 id="new-h">New campaign</h2>
+            <NewCampaignForm />
+          </section>
         </div>
       </main>
-    </div>
+    </>
   );
 }

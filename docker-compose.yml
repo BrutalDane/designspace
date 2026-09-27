@@ -1,0 +1,21 @@
+# Local database for development. Start with `npm run setup` (or `docker compose up -d`).
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: designspace
+      POSTGRES_PASSWORD: designspace-local-only
+      POSTGRES_DB: designspace
+    ports:
+      - "127.0.0.1:54329:5432"   # only reachable from this computer
+    volumes:
+      - ds_pgdata:/var/lib/postgresql/data
+      - ./scripts/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U designspace -d designspace"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  ds_pgdata:

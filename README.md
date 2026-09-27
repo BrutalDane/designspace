@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Designspace
 
-## Getting Started
+A campaign studio for the GM: a wiki, an AI co-GM for worldbuilding, and session prep, with a player wiki on top.
 
-First, run the development server:
+## Start it (on your computer)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+You need three free programs installed once: **Node.js** (LTS), **Git** and **Docker Desktop**.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Start **Docker Desktop** and wait until it says it's running.
+2. Open a terminal in this folder and run:
+   ```
+   npm run setup
+   ```
+   The first time, it asks for your GM email, name and a password (at least 12 characters).
+3. Start Designspace:
+   ```
+   npm run dev
+   ```
+   Open http://localhost:3000 and sign in.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To stop it, press `Ctrl+C` in the terminal. Your data stays in the database until next time.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Everyday commands
 
-## Learn More
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start Designspace at http://localhost:3000 |
+| `npm run backup` | Save a full backup to the `Designspace-backups` folder in your home folder |
+| `npm run backup:verify` | Prove the newest backup can be restored (do this monthly) |
+| `npm run check` | Run the whole quality gate: lint, types, tests, build, browser journeys, accessibility |
 
-To learn more about Next.js, take a look at the following resources:
+## How the project is run
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `CLAUDE.md` for the working rules, `STATUS.md` for where things stand, `DECISIONS.md` for why things are the way they are, and `FRICTION.md` for anything that felt clumsy.

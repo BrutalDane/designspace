@@ -1,0 +1,59 @@
+# The automatic quality gate. Runs on every push and pull request. Nothing is merged unless this is green.
+name: Quality gate
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: designspace
+          POSTGRES_PASSWORD: designspace-local-only
+          POSTGRES_DB: designspace
+        ports: ["54329:5432"]
+        options: >-
+          --health-cmd "pg_isready -U designspace" --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://designspace:designspace-local-only@localhost:54329/designspace
+      TEST_DATABASE_URL: postgres://designspace:designspace-local-only@localhost:54329/designspace_test
+      BETTER_AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789
+      BETTER_AUTH_URL: http://localhost:3000
+      DS_NO_DOCKER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create test database
+        run: psql "$DATABASE_URL" -c "CREATE DATABASE designspace_test"
+      - run: npm ci
+      - name: Dependency security audit
+        run: npm audit --audit-level=high --omit=dev
+      - run: npm run db:migrate
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: End-to-end journeys, security and accessibility
+        run: npm run test:e2e
+      - name: Backup and restore check
+        run: |
+          export BACKUP_DIR=$RUNNER_TEMP/backups
+          npm run backup
+          npm run backup:verify
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            test-results
+            playwright-report
+          retention-days: 7
