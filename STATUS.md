@@ -9,23 +9,11 @@ Quality gate runs on every push to main and is green.
 **M1 slices 1–3: done and merged.** Places (to `reference/`), links (the GM doesn't type them; Worldbuilding will),
 people and groups (NPC, PC, Party, Faction, Magic item; People here, Members, Carries build themselves).
 
-**M1 slice 4 (The remaining types): built on branch `m1/remaining-types`, waiting for Thor to try it.** All decided types
+**M1 slice 4 (The remaining types): done and merged.** Thor tried it (an Arc, a Thread with a clock, a Clue with three routes). All decided types
 now exist: Arc, Thread / Front (clock, ladder, Driven by), Clue (routes to tick, warning under three), Deity, Culture,
 Lore (GM-only truth), Creature, Rule reference with House rulings, Dungeon level (keyed areas). Campaign State is the
 Wiki's front page (fronts and clocks, other open threads). `npm run check` is green (34 unit tests, 28 browser journeys).
 The local database has the new "data" column (backup taken first).
-
-## Waiting on Thor
-Try slice 4 (below). Anything that feels off goes in FRICTION.md; then Claude merges `m1/remaining-types` and pushes.
-
-## Slice 4 checks for Thor
-1. Wiki → **New page** → Arc. Inside it, add a **Thread / Front**. Edit it: set **Filled segments** to 2, a **Next
-   portent**, and **Driven by** your Jonathanians. See the clock and the Impulse → Portents → If ignored ladder.
-2. Open **Campaign State** (top of the tree): the thread shows under Fronts and clocks. The Jonathanians page shows it too.
-3. Inside the thread, add a **Clue**. Edit it: two routes under **Routes to it**, one per line. See the warning; tick one
-   route found; add a third route and the warning goes.
-4. Inside your Dungeon (or a new one in the Vale of Thren), add a **Dungeon level** and fill a couple of keyed areas.
-5. Add a **Rule reference** and a **House ruling** inside it; the rule lists the ruling.
 
 ## Next (order decided by Thor, 2026-09-27)
 1. **Lean audit** of the whole app (due every five slices; slice 5 is next) before Worldbuilding starts.
