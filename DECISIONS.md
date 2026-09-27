@@ -26,3 +26,7 @@ One line each: date · decision · why. Product decisions are Thor's; technical 
 - 2026-09-27 · "Summary" is called "Lead" as in the reference; migrations carry existing text across · One name for one thing.
 - 2026-09-27 · A page placed before the nesting fix keeps its parent until the GM picks an allowed one in the editor's Parent field; nothing is moved automatically · The GM decides; no silent changes to data.
 - 2026-09-27 · Moving a page (Parent) is not a new page version; only the text is versioned · Parent is where the page sits, not what it says.
+- 2026-09-27 · Links: the GM types [[Title]] or [[Title|shown text]] (prototype syntax); saved text stores the page id and the editor shows the current title again · Renaming a page never breaks links, with no link table to keep in sync.
+- 2026-09-27 · Links to, Linked from and "On this page" are worked out from page text on each view · Nothing is stored twice; fine at campaign scale, revisit if pages number in the thousands.
+- 2026-09-27 · A [[Title]] shared by two pages is refused with a plain message instead of guessing · The GM decides which page is meant.
+- 2026-09-27 · A link can only resolve to a page in the same campaign; other ids show as "unknown page" · Links can't be used to probe other campaigns.

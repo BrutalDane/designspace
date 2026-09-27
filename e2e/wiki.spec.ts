@@ -21,6 +21,12 @@ async function addInside(page: Page, parent: string, kind: string, title: string
   await addPage(page, kind, title);
 }
 
+/** Opens the editor and waits for it, so fields aren't confused with the page's sections of the same name. */
+async function openEditor(page: Page) {
+  await page.getByRole("link", { name: "Edit" }).click();
+  await expect(page.getByText(/^Editing directly/)).toBeVisible();
+}
+
 /** World → Region → Settlement, which most tests start from. */
 async function vellumis(page: Page, campaign: string) {
   await newCampaign(page, campaign);
@@ -72,7 +78,7 @@ test("a page shows its layout: lead, read-aloud, groups, GM group, not-written l
   await expect(page.getByText("not written yet: Demographics, Government, Culture and customs, Religion, Factions and guilds")).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Edit" }).click();
+  await openEditor(page);
   await page.getByLabel("Lead").fill("A city of ledgers and bells.");
   await page.getByLabel("Population", { exact: true }).fill("12,000");
   await page.getByLabel("First impression").fill("Fog, bells, and clerks hurrying with ink-stained hands.");
@@ -97,19 +103,19 @@ test("a page shows its layout: lead, read-aloud, groups, GM group, not-written l
 
 test("edit a page, read an older version and restore it", async ({ page }) => {
   await vellumis(page, "History test");
-  await page.getByRole("link", { name: "Edit" }).click();
+  await openEditor(page);
   await page.getByLabel("Description").fill("Mist over a broken bridge.");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Mist over a broken bridge.")).toBeVisible();
 
-  await page.getByRole("link", { name: "Edit" }).click();
+  await openEditor(page);
   await page.getByLabel("Title").fill("Vellumis-on-the-Marsh");
   await page.getByLabel("Description").fill("A new bridge, built too fast.");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("heading", { name: "Vellumis-on-the-Marsh", level: 1 })).toBeVisible();
   await expect(page.getByText("Version 3")).toBeVisible();
 
-  await page.getByRole("link", { name: "History" }).click();
+  await page.getByRole("link", { name: "Full history" }).click();
   const versions = page.getByRole("list", { name: "Versions" }).getByRole("listitem");
   await expect(versions).toHaveCount(3);
   await expect(versions.nth(0)).toContainText("Title, Description");
@@ -130,7 +136,7 @@ test("move a page by changing its Parent; only allowed parents are offered", asy
   const tree = page.getByRole("navigation", { name: "Campaign pages" });
   await tree.getByRole("button", { name: "Expand The Grey Marches" }).click();
   await tree.getByRole("link", { name: "Vellumis" }).click();
-  await page.getByRole("link", { name: "Edit" }).click();
+  await openEditor(page);
   const parent = page.getByLabel("Parent");
   await expect(parent.getByRole("option")).toHaveText(["The Grey Marches · Region", "The Vale of Thren · Region"]); // no World: a Settlement sits under a Region
   await parent.selectOption({ label: "The Vale of Thren · Region" });
@@ -140,7 +146,7 @@ test("move a page by changing its Parent; only allowed parents are offered", asy
 
 test("a save from an out-of-date editor never overwrites newer text", async ({ page, context }) => {
   await vellumis(page, "Conflict test");
-  await page.getByRole("link", { name: "Edit" }).click();
+  await openEditor(page);
 
   const other = await context.newPage();
   await other.goto(page.url());
@@ -163,4 +169,53 @@ test("a page needs a title", async ({ page }) => {
   await page.getByRole("button", { name: "Create page" }).click();
   await expect(page.getByText("Give the page a title.")).toBeVisible();
   await expect(page.getByLabel("Lead")).toHaveValue("Kept after the error.");
+});
+
+test("link pages with [[Title]]: follow links, see Linked from, and renames carry through", async ({ page }) => {
+  await vellumis(page, "Links test");
+  await openEditor(page);
+  await page.getByLabel("Description").fill("Capital of [[the grey marches]]. Ask at [[The Drowned Bell]].\n\n**Bells** at *dusk*:\n- the Ledger bell\n- the Tide bell");
+  await page.getByRole("button", { name: "Save" }).click();
+
+  const article = page.locator(".art-main");
+  await expect(article.getByRole("link", { name: "The Grey Marches" })).toBeVisible();   // shown with the page's own title
+  await expect(article.getByText("The Drowned Bell")).toHaveClass(/un/);                 // no page yet: grey, not a link
+  await expect(article.getByRole("link", { name: "The Drowned Bell" })).toHaveCount(0);
+  await expect(article.locator("strong", { hasText: "Bells" })).toBeVisible();
+  await expect(article.getByRole("listitem")).toHaveCount(2);
+  const pane = page.getByRole("complementary", { name: "Page context" });
+  await expect(pane.getByText("Links to · 1")).toBeVisible();
+
+  await article.getByRole("link", { name: "The Grey Marches" }).click();
+  await expect(page.getByRole("heading", { name: "The Grey Marches", level: 1 })).toBeVisible();
+  await expect(pane.getByText("Linked from · 1")).toBeVisible();
+  await expect(pane.getByRole("link", { name: "Vellumis" })).toBeVisible();
+
+  // Rename the target: the link follows, and the editor shows the new title.
+  await openEditor(page);
+  await page.getByLabel("Title").fill("The Grey March");
+  await page.getByRole("button", { name: "Save" }).click();
+  await pane.getByRole("link", { name: "Vellumis" }).click();
+  await expect(article.getByRole("link", { name: "The Grey March" })).toBeVisible();
+  await openEditor(page);
+  await expect(page.getByLabel("Description")).toHaveValue(/Capital of \[\[The Grey March\]\]\./);
+  await page.getByRole("link", { name: "Cancel" }).click();
+
+  // Creating the missing page turns the grey link into a real one.
+  await addInside(page, "Vellumis", "Building / Landmark", "The Drowned Bell");
+  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Vellumis" }).click();
+  await expect(article.getByRole("region", { name: "Description" }).getByRole("link", { name: "The Drowned Bell" })).toBeVisible();
+});
+
+test("a link to a title two pages share asks for a rename instead of guessing", async ({ page }) => {
+  await vellumis(page, "Twins test");
+  await addInside(page, "Vellumis", "Building / Landmark", "Bell Tower");
+  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Vellumis" }).click();
+  await addInside(page, "Vellumis", "Site", "Bell Tower");
+  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Vellumis" }).click();
+  await openEditor(page);
+  await page.getByLabel("Description").fill("Meet at [[Bell Tower]].");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText('Two pages are called "Bell Tower". Rename one of them, then link again.')).toBeVisible();
+  await expect(page.getByLabel("Description")).toHaveValue("Meet at [[Bell Tower]].");
 });

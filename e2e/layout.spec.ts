@@ -39,6 +39,7 @@ test("wiki pages pass the accessibility scan and fit the screen", async ({ page 
   await page.getByRole("button", { name: "Create page" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("rather long name");
   await page.getByRole("link", { name: "Edit" }).click();
+  await expect(page.getByText(/^Editing directly/)).toBeVisible();
   await noSeriousA11yIssues(page);
   await fitsTheScreen(page);
   await page.getByLabel("Terrain").fill("Moor and fen");
@@ -49,7 +50,7 @@ test("wiki pages pass the accessibility scan and fit the screen", async ({ page 
   await expect(page.getByText("Bells in the fog.")).toBeVisible();
   await noSeriousA11yIssues(page); // read-aloud panel, groups, GM group, not-written lines, infobox
   await fitsTheScreen(page);
-  await page.getByRole("link", { name: "History" }).click();
+  await page.getByRole("link", { name: "Full history" }).click();
   await noSeriousA11yIssues(page);
   await page.getByRole("link", { name: "Version 1" }).click();
   await noSeriousA11yIssues(page);

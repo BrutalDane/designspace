@@ -100,3 +100,28 @@ test("a forged Parent can't move a page into another campaign", async ({ page })
   await page.goto(page.url().replace(/\/edit$/, ""));
   await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link")).toHaveText(["Wiki", "Home World"]);
 });
+
+test("a link to another GM's page reveals nothing about it", async ({ browser }) => {
+  const a = await browser.newPage();
+  await signIn(a);
+  await a.getByLabel("Name").fill("Private links");
+  await a.getByRole("button", { name: "Create campaign" }).click();
+  await a.getByRole("link", { name: "Add the world" }).click();
+  await a.getByLabel("Title").fill("Secret Citadel");
+  await a.getByRole("button", { name: "Create page" }).click();
+  await expect(a.getByRole("heading", { name: "Secret Citadel", level: 1 })).toBeVisible();
+  const secretId = a.url().split("/").at(-1)!;
+
+  const b = await browser.newPage();
+  await signIn(b, "other@example.test");
+  await b.getByLabel("Name").fill("Snooping");
+  await b.getByRole("button", { name: "Create campaign" }).click();
+  await b.getByRole("link", { name: "Add the world" }).click();
+  await b.getByLabel("Title").fill("My World");
+  await b.getByLabel("Lead").fill(`Probe: [[${secretId}]] and [[Secret Citadel]].`);
+  await b.getByRole("button", { name: "Create page" }).click();
+  await expect(b.getByRole("heading", { name: "My World", level: 1 })).toBeVisible();
+  await expect(b.locator(".art-main a.wl")).toHaveCount(0);           // neither becomes a link
+  await expect(b.getByText("unknown page")).toBeVisible();             // the id shows as an unknown page, not its title
+  await expect(b.getByRole("complementary", { name: "Page context" })).not.toContainText("Secret Citadel");
+});
