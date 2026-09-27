@@ -1,3 +1,4 @@
+import { formatWhen } from "@/lib/format";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPage, getVersion, listPages } from "@/lib/dal";
@@ -22,7 +23,7 @@ export default async function Page({ params }: Props) {
   return (
     <article aria-labelledby="ver-h">
       <Breadcrumbs base={base} path={[...ancestors(places, p.id), { id: p.id, title: p.current.title }]} current={`Version ${v.number}`} />
-      <p className="eyebrow">Version {v.number} · {v.createdAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</p>
+      <p className="eyebrow">Version {v.number} · {formatWhen(v.createdAt)}</p>
       <h1 id="ver-h" className="display">{v.title}</h1>
       <div className="notice stack">
         {isCurrent ? <p>This is the current version.</p> : (

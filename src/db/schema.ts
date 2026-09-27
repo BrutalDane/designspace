@@ -86,5 +86,3 @@ export const entryRevision = pgTable("entry_revision", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex("entry_revision_number_idx").on(t.entryId, t.number)]);
 
-export type Entry = typeof entry.$inferSelect;
-export type EntryRevision = typeof entryRevision.$inferSelect;

@@ -239,7 +239,6 @@ export const INFOBOX_IMAGE: Partial<Record<EntryType, string>> = {
   npc: "Portrait", pc: "Portrait", faction: "Emblem", item: "Illustration", deity: "Holy symbol", culture: "Illustration", creature: "Illustration", lore: "Illustration",
 };
 
-export const isEntryType = (t: string): t is EntryType => Object.hasOwn(ENTRY_TYPES, t);
 /** Everything written as text on a page of this type, in editor order: family fields, then sections (lists left out). */
 export const writtenFields = (t: EntryType) => [...(ENTRY_TYPES[t].extra ?? []), ...ENTRY_TYPES[t].groups.flatMap((g) => g.fields).filter((f) => !isAuto(f.key))];
 /** Infobox fields the GM fills. "Parent" is the page's place in the tree, not a typed field. */

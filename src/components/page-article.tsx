@@ -237,7 +237,7 @@ function Infobox({ type, content, base, index, parent, inside }: { type: EntryTy
             <div key={k}><dt>{k}</dt><dd>{k === "Parent" && parent ? <Link href={`${base}/${parent.id}`}>{parent.title}</Link> : <RichText text={content.info[k]} index={index} base={base} inline />}</dd></div>
           ))}
           {inside.length > 0 && (
-            <div className="ib-sub"><dt>Contains</dt><dd>{inside.map((c, i) => <span key={c.id}>{i > 0 && ", "}<Link href={`${base}/${c.id}`}>{c.title}</Link></span>)}</dd></div>
+            <div><dt>Contains</dt><dd>{inside.map((c, i) => <span key={c.id}>{i > 0 && ", "}<Link href={`${base}/${c.id}`}>{c.title}</Link></span>)}</dd></div>
           )}
         </dl>
       )}

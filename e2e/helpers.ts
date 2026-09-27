@@ -16,3 +16,15 @@ export async function noSeriousA11yIssues(page: Page) {
   const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(bad.map((v) => `${v.id}: ${v.help} → ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 }
+
+/** Opens the editor and waits for it, so fields aren't confused with the page's sections of the same name. */
+export async function openEditor(page: Page) {
+  await page.getByRole("link", { name: "Edit" }).click();
+  await expect(page.getByText(/^Editing directly/)).toBeVisible();
+}
+
+/** Saves the editor and waits for the page to show again. */
+export async function save(page: Page) {
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("link", { name: "Edit" })).toBeVisible();
+}

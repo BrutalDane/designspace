@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signIn } from "./helpers";
+import { signIn, openEditor } from "./helpers";
 
 async function newCampaign(page: Page, name: string) {
   await signIn(page);
@@ -19,12 +19,6 @@ async function addPage(page: Page, kind: string, title: string, lead = "") {
 async function addInside(page: Page, parent: string, kind: string, title: string) {
   await page.getByRole("link", { name: `Add a place inside ${parent}` }).click();
   await addPage(page, kind, title);
-}
-
-/** Opens the editor and waits for it, so fields aren't confused with the page's sections of the same name. */
-async function openEditor(page: Page) {
-  await page.getByRole("link", { name: "Edit" }).click();
-  await expect(page.getByText(/^Editing directly/)).toBeVisible();
 }
 
 /** World → Region → Settlement, which most tests start from. */

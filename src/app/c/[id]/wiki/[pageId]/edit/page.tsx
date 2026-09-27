@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getPage, listPages, validParents } from "@/lib/dal";
 import { ENTRY_TYPES, REF_FIELDS, infoFields, writtenFields, type EntryType } from "@/lib/reference";
-import { ancestors } from "@/lib/tree";
+import { ancestors, byTitle } from "@/lib/tree";
 import { linkIndex, toEditable } from "@/lib/links";
 import { refId } from "@/lib/auto-lists";
 import { dataParts } from "@/lib/page-data";
@@ -22,7 +22,6 @@ export default async function Page({ params }: Props) {
   const base = `/c/${id}/wiki`;
   const T = ENTRY_TYPES[p.type];
   const label = (x: { title: string; type: EntryType }) => `${x.title} · ${ENTRY_TYPES[x.type].label}`;
-  const byTitle = <X extends { title: string }>(xs: X[]) => [...xs].sort((a, b) => a.title.localeCompare(b.title));
 
   // Saved links hold page ids; the editor shows them as [[Title]] again. Reference fields show as a choice of pages.
   const index = linkIndex(pages), ed = (t: string) => toEditable(t, index);
