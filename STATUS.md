@@ -12,19 +12,9 @@ Quality gate runs on every push to main and is green.
 **M1 slice 2 (Links): done and merged.** Pages show links, Linked from, Links to and "On this page", and links survive
 renames. Thor decided the GM does not type links; Worldbuilding writes them (M4).
 
-**M1 slice 3 (People and groups): built on branch `m1/people`, waiting for Thor to try it.** Faction, NPC, Player
+**M1 slice 3 (People and groups): done and merged.** Thor tried it (an NPC with Location and Faction, an item with a Holder). Faction, NPC, Player
 character, Party and Magic item with their layouts; People here, Members and Carries build themselves; tree grouped by
 type group; "New page". `npm run check` is green (28 unit tests, 26 browser journeys). No database change.
-
-## Waiting on Thor
-Try slice 3 (below). Anything that feels off goes in FRICTION.md; then Claude merges `m1/people` and pushes.
-
-## Slice 3 checks for Thor
-1. Wiki → **New page** → NPC, give it a name. See the round badge and the Wants / Fears / Secret cards.
-2. **Edit** the NPC: pick a **Location** (for example Vellumis) from the list, fill Wants and Voice, save.
-3. Open Vellumis: the NPC appears under **Notable people here**; the Vale of Thren shows them under **People here** too.
-4. **New page** → Faction. Set the NPC's **Faction** to it: the faction lists them under **Members**.
-5. **New page** → Magic item. Set its **Holder** to the NPC: the NPC's page lists it under **Carries**.
 
 ## Next (order decided by Thor, 2026-09-27)
 1. **M1 slice 4: The remaining types.** Arc, Thread / Front (clock and ladder), Clue (routes), Deity, Culture, Lore,
