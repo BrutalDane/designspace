@@ -4,17 +4,36 @@
  * Scripted:     npm run gm:create -- --email a@b.c --name Thor --password "..."   (used by tests)
  */
 import "dotenv/config";
-import { createInterface } from "node:readline/promises";
+import { createInterface } from "node:readline";
 import { stdin, stdout } from "node:process";
+import { Writable } from "node:stream";
 import { auth } from "../src/lib/auth";
 
 function arg(name: string) { const i = process.argv.indexOf(`--${name}`); return i > -1 ? process.argv[i + 1] : undefined; }
 
+// Everything the prompt echoes goes through here, so typing can be hidden while a password is entered.
+let hidden = false;
+const screen = new Writable({ write(chunk, encoding, done) { if (!hidden) stdout.write(chunk, encoding); done(); } });
+
 async function main() {
-  const rl = createInterface({ input: stdin, output: stdout });
-  const email = (arg("email") ?? (await rl.question("GM email: "))).trim().toLowerCase();
-  const name = (arg("name") ?? (await rl.question("Your name (shown in the app): "))).trim();
-  const password = arg("password") ?? (await rl.question("Password (at least 12 characters): "));
+  const rl = createInterface({ input: stdin, output: screen, terminal: stdin.isTTY });
+  const lines = rl[Symbol.asyncIterator]();
+  const ask = async (question: string, hide = false): Promise<string> => {
+    stdout.write(question);
+    hidden = hide;
+    const { value } = await lines.next();
+    hidden = false;
+    if (hide) stdout.write("\n");
+    return value ?? "";
+  };
+  const askHidden = (question: string) => ask(question, true);
+  const email = (arg("email") ?? (await ask("GM email: "))).trim().toLowerCase();
+  const name = (arg("name") ?? (await ask("Your name (shown in the app): "))).trim();
+  let password = arg("password");
+  if (password === undefined) {
+    password = await askHidden("Password (at least 12 characters, hidden while you type): ");
+    if (password !== (await askHidden("Type the password again: "))) { rl.close(); throw new Error("The two passwords didn't match. Nothing changed; please run it again."); }
+  }
   rl.close();
   if (!email.includes("@") || name.length < 1) throw new Error("Please give a valid email and a name.");
   if (password.length < 12) throw new Error("The password must be at least 12 characters.");
