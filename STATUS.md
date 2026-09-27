@@ -1,32 +1,25 @@
 # Status
 
-_Last updated: 2026-09-27 (session 1)_
+_Last updated: 2026-09-27 (session 2, Claude Code on Thor's Windows computer)_
 
 ## Where we are
-**M0 Foundations (local): built and tested in Claude's workspace.** Waiting for Thor's one-time setup to run it on his computer.
+**M0 Foundations: done and running on Thor's computer.** Thor passed all five M0 checks (sign-in, campaign, workspaces,
+backup, restore check). The full quality gate (`npm run check`) is green on Windows too.
 
-Works now: GM sign-in (no public sign-up), campaign list and creation, the three workspaces as empty shells,
-local database with migrations, backup + restore check, quality gate (10 browser journeys incl. isolation and
-accessibility, unit tests, lint, types, build) and the GitHub Actions workflow.
+Installed this session: Node.js 24 LTS (Git and Docker Desktop were already there). Playwright's test browser is installed.
+Fixed: setup and backup scripts on Windows (see DECISIONS.md / FRICTION.md).
 
 ## Waiting on Thor
-1. Open this folder in **Claude Code** (Claude desktop app → Code) so Claude can run commands on this Windows computer.
-   The Cowork session that built M0 could only reach this folder through an isolated Linux environment, not Windows itself.
-2. Create a private GitHub repository named `designspace` on github.com (no README).
-3. Type the GM password yourself when `npm run gm:create` asks for it (Claude never sees it).
+1. Create a private GitHub repository named `designspace` on github.com (no README) and send Claude its link.
 
-## Next session (Claude Code, on Thor's Windows computer)
-1. Check for Node.js LTS (22+), Git and Docker Desktop; install what's missing with `winget` (Thor approves the installer prompts).
-2. `npm run setup` (Thor types the GM password), `npm run dev`, walk Thor through the M0 checks below.
-3. Connect GitHub: `git remote add origin https://github.com/<user>/designspace.git`, `git push -u origin main`; confirm the Quality gate run is green.
-4. Record anything that felt off in FRICTION.md, then start M1 slice 1.
+## Next session
+1. Connect GitHub: `git remote add origin <link>`, `git push -u origin main`; confirm the Quality gate run is green.
+2. Small follow-up: hide the password while typing in `gm:create` (FRICTION.md).
+3. Start M1 slice 1.
 
-## M0 checks for Thor
-1. `npm run dev`, open http://localhost:3000. You're sent to sign in.
-2. Sign in with your GM account.
-3. Create a campaign; it opens on the Wiki.
-4. Switch between Wiki, Worldbuilding and Sessions.
-5. `npm run backup`, then `npm run backup:verify`.
+## Everyday use (Windows PowerShell: type `npm.cmd` instead of `npm`)
+- Start: Docker Desktop running, then `npm.cmd run dev`, open http://localhost:3000.
+- Claude can also start it from the Code tab (`.claude/launch.json`, name `designspace`).
 
 ## Next
 M1 Wiki core, slice 1: entry types and layouts for places (World → Region → Settlement → District → Building/Site), the tree, and page editing with history.

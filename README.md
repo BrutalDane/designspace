@@ -20,6 +20,8 @@ You need three free programs installed once: **Node.js** (LTS), **Git** and **Do
 
 To stop it, press `Ctrl+C` in the terminal. Your data stays in the database until next time.
 
+**Windows PowerShell:** type `npm.cmd` instead of `npm` (for example `npm.cmd run backup`). PowerShell blocks the `npm` shortcut by default; `npm.cmd` is the same program and needs no settings changed.
+
 ## Everyday commands
 
 | Command | What it does |

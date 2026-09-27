@@ -15,3 +15,6 @@ One line each: date · decision · why. Product decisions are Thor's; technical 
 - 2026-09-27 · Tests run against a production build and a separate test database · Tests prove what will actually ship and never touch real data.
 - 2026-09-27 · Accessibility gate: no serious/critical axe issues (WCAG 2.2 AA); muted text colour darkened to pass contrast · Found by the gate in M0.
 - 2026-09-27 · Accept 4 moderate npm-audit advisories in drizzle-kit's bundled esbuild (dev-only tool, the vulnerable esbuild dev server is never run); CI fails on high/critical · Only fix is a breaking downgrade; re-check monthly.
+- 2026-09-27 · Scripts start programs without a shell; only `npx` goes through one, and only with plain-word arguments · On Windows a shell splits multi-word arguments, which silently broke the backup restore check.
+- 2026-09-27 · Local dev uses Node.js 24 LTS (installed via winget); CI stays on Node 22 · Both meet `engines: >=22`; the gate passed on both.
+- 2026-09-27 · Commits from Thor's computer are authored as Thor (project-level git setting) · Commits link to his GitHub account.
