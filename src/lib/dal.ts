@@ -7,7 +7,7 @@ import { auth } from "@/lib/auth";
 import { db, schema } from "@/db";
 import { childTypes, ENTRY_TYPES, REF_FIELDS, type EntryType } from "@/lib/reference";
 import { refId } from "@/lib/auto-lists";
-import { ancestors } from "@/lib/tree";
+import { ancestors, byTitle } from "@/lib/tree";
 import { linkIndex, linkTargets, pageText } from "@/lib/links";
 import type { NewPageInput, PageVersion } from "@/lib/validation";
 import type { PageData } from "@/lib/page-data";
@@ -91,9 +91,7 @@ export async function getVersion(campaignId: string, pageId: string, number: num
 /** Places a page may move under: allowed parent types only, never itself or anything inside it. */
 export async function validParents(campaignId: string, pageId: string) {
   const [p, places] = await Promise.all([getPage(campaignId, pageId), listPages(campaignId)]);
-  return places
-    .filter((x) => ENTRY_TYPES[p.type].parents.includes(x.type) && x.id !== p.id && !ancestors(places, x.id).some((a) => a.id === p.id))
-    .sort((a, b) => a.title.localeCompare(b.title));
+  return byTitle(places.filter((x) => ENTRY_TYPES[p.type].parents.includes(x.type) && x.id !== p.id && !ancestors(places, x.id).some((a) => a.id === p.id)));
 }
 
 /** Creates a place inside `parentId` (or at the top of the Wiki) together with its first version. */
@@ -184,7 +182,7 @@ export async function pageLinks(campaignId: string, pageId: string) {
   const byId = new Map(places.map((x) => [x.id, x]));
   const linksTo = linkTargets(pageText(p.current), index).filter((id) => id !== p.id);
   const linkedFrom = texts.filter((t) => t.id !== p.id && linkTargets(pageText(t), index).includes(p.id)).map((t) => t.id);
-  const pick = (ids: string[]) => ids.map((id) => byId.get(id)!).filter(Boolean).sort((a, b) => a.title.localeCompare(b.title));
+  const pick = (ids: string[]) => byTitle(ids.map((id) => byId.get(id)!).filter(Boolean));
   return { linksTo: pick(linksTo), linkedFrom: pick(linkedFrom) };
 }
 

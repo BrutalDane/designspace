@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signIn, noSeriousA11yIssues } from "./helpers";
+import { signIn, noSeriousA11yIssues, openEditor, save } from "./helpers";
 
 async function newPage(page: Page, kind: string, title: string) {
   await page.goto(page.url().replace(/\/wiki.*$/, "/wiki/new"));
@@ -7,16 +7,6 @@ async function newPage(page: Page, kind: string, title: string) {
   await page.getByLabel("Title").fill(title);
   await page.getByRole("button", { name: "Create page" }).click();
   await expect(page.getByRole("heading", { name: title, level: 1 })).toBeVisible();
-}
-
-async function openEditor(page: Page) {
-  await page.getByRole("link", { name: "Edit" }).click();
-  await expect(page.getByText(/^Editing directly/)).toBeVisible();
-}
-
-async function save(page: Page) {
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("link", { name: "Edit" })).toBeVisible();
 }
 
 test("people, factions, the party and items, with the lists that build themselves", async ({ page }) => {

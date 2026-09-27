@@ -1,3 +1,4 @@
+import { formatWhen } from "@/lib/format";
 import Link from "next/link";
 import { ENTRY_TYPES, isAuto, type EntryType } from "@/lib/reference";
 import type { PageContent } from "@/lib/validation";
@@ -17,7 +18,6 @@ export function ContextPane({ base, pageId, type, content, hasInside, linksTo, l
   const toc = ENTRY_TYPES[type].groups.flatMap((g) => g.fields
     .filter((f) => f.key !== "impression" && (f.key === "CHILDREN" ? hasInside : !isAuto(f.key) && content.sections[f.key]))
     .map((f) => ({ ...f, group: g.name })));
-  const when = (d: Date) => d.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
   return (
     <aside className="ctx" aria-label="Page context">
       {toc.length > 2 && (
@@ -54,7 +54,7 @@ export function ContextPane({ base, pageId, type, content, hasInside, linksTo, l
       <ul className="hist">
         {versions.slice(0, 5).map((v) => (
           <li key={v.number}>
-            <Link href={`${base}/${pageId}/history/${v.number}`}>Version {v.number}</Link> <span className="mono">{when(v.createdAt)}</span>
+            <Link href={`${base}/${pageId}/history/${v.number}`}>Version {v.number}</Link> <span className="mono">{formatWhen(v.createdAt)}</span>
             <br /><span className="small">{v.changed}</span>
           </li>
         ))}

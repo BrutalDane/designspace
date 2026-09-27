@@ -6,6 +6,7 @@ import { CLOCK_SEGMENTS } from "@/lib/page-data";
 import { linkIndex } from "@/lib/links";
 import { RichText } from "@/components/rich-text";
 import { Clock } from "@/components/clock";
+import { byTitle } from "@/lib/tree";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const c = await getCampaign((await params).id);
@@ -23,7 +24,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const index = linkIndex(pages);
   const rich = (t: string) => <RichText text={t} index={index} base={base} inline />;
   const nextBeat = new Map(texts.map((t) => [t.id, t.sections.next ?? ""]));
-  const threads = pages.filter((p) => p.type === "thread").sort((a, b) => a.title.localeCompare(b.title));
+  const threads = byTitle(pages.filter((p) => p.type === "thread"));
   const withClock = threads.filter((t) => t.data.clock);
   const others = threads.filter((t) => !t.data.clock);
   return (

@@ -1,3 +1,4 @@
+import { formatWhen } from "@/lib/format";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPage, listPages, listVersions } from "@/lib/dal";
@@ -26,7 +27,7 @@ export default async function Page({ params }: Props) {
           <li key={v.id}>
             <Link href={`${base}/history/${v.number}`}>Version {v.number}</Link>
             {v.number === p.current.number && <span className="pill">Current</span>}
-            <span className="muted small"> · {v.createdAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} · {author}</span>
+            <span className="muted small"> · {formatWhen(v.createdAt)} · {author}</span>
             <div className="small">{changedParts(p.type, versions[i + 1]?.version, v).join(", ")}</div>
           </li>
         ))}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCampaign, getPage, listPages, listVersions, pageLinks } from "@/lib/dal";
 import { ENTRY_TYPES, RULESETS, childTypes } from "@/lib/reference";
-import { ancestors } from "@/lib/tree";
+import { ancestors, byTitle } from "@/lib/tree";
 import { linkIndex } from "@/lib/links";
 import { carries, drivenBy, members, partyMembers, peopleHere } from "@/lib/auto-lists";
 import { markRoute } from "../actions";
@@ -19,7 +19,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `${p.current.title} · ${c.name} · Designspace` };
 }
 
-const byTitle = <T extends { title: string }>(xs: T[]) => [...xs].sort((a, b) => a.title.localeCompare(b.title));
 
 export default async function Page({ params }: Props) {
   const { id, pageId } = await params;
@@ -37,7 +36,7 @@ export default async function Page({ params }: Props) {
   const parent = pages.find((x) => x.id === p.parentId) ?? null;
   const title = p.current.title;
   return (
-    <div className="place-layout">
+    <div className="page-layout">
       <article aria-labelledby="page-h">
         <Breadcrumbs base={base} path={ancestors(pages, p.id)} current={title} />
         {T.fam === "person" ? (

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signIn, noSeriousA11yIssues } from "./helpers";
+import { signIn, noSeriousA11yIssues, openEditor, save } from "./helpers";
 
 async function create(page: Page, kind: string, title: string, inside?: string) {
   if (inside) await page.getByRole("link", { name: `Add a page inside ${inside}` }).or(page.getByRole("link", { name: `Add a place inside ${inside}` })).click();
@@ -9,15 +9,6 @@ async function create(page: Page, kind: string, title: string, inside?: string) 
   await page.getByRole("button", { name: "Create page" }).click();
   await expect(page.getByRole("heading", { name: title, level: 1 })).toBeVisible();
 }
-async function openEditor(page: Page) {
-  await page.getByRole("link", { name: "Edit" }).click();
-  await expect(page.getByText(/^Editing directly/)).toBeVisible();
-}
-async function save(page: Page) {
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("link", { name: "Edit" })).toBeVisible();
-}
-
 test("threads with clocks, clues with routes, and Campaign State", async ({ page }) => {
   await signIn(page);
   await page.getByLabel("Name").fill("Threads test");

@@ -27,3 +27,6 @@ export function ancestors<T extends TreeItem>(items: T[], id: string): T[] {
   }
   return path;
 }
+
+/** A copy of the list sorted by title, as the tree and every list of pages show them. */
+export const byTitle = <T extends { title: string }>(items: T[]) => [...items].sort((a, b) => a.title.localeCompare(b.title));
