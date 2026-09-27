@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { RULESETS, CALENDARS, PLACE_TYPES, infoFields, writtenFields, type PlaceType } from "@/lib/reference";
+import { RULESETS, CALENDARS, ENTRY_TYPES, infoFields, writtenFields, type EntryType } from "@/lib/reference";
 
 export const CampaignInput = z.object({
   name: z.string().trim().min(2, { error: "Give the campaign a name of at least 2 characters." }).max(80, { error: "Keep the name under 80 characters." }),
@@ -17,19 +17,19 @@ export const SignInInput = z.object({
 const title = z.string().trim().min(1, { error: "Give the page a title." }).max(120, { error: "Keep the title under 120 characters." });
 const lead = z.string().trim().max(2000, { error: "Keep the lead under 2,000 characters." });
 
-export const NewPlaceInput = z.object({
-  type: z.enum(Object.keys(PLACE_TYPES) as [PlaceType, ...PlaceType[]], { error: "Pick what kind of place this is." }),
+export const NewPageInput = z.object({
+  type: z.enum(Object.keys(ENTRY_TYPES) as [EntryType, ...EntryType[]], { error: "Pick what kind of place this is." }),
   title,
   lead,
 });
-export type NewPlaceInput = z.infer<typeof NewPlaceInput>;
+export type NewPageInput = z.infer<typeof NewPageInput>;
 
 export type PageContent = { title: string; lead: string; info: Record<string, string>; sections: Record<string, string> };
 
 const dropEmpty = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== ""));
 
 /** Reads an edited page for the given type. Only that type's infobox fields and sections are kept; empty ones are dropped. */
-export function parsePage(type: PlaceType, data: { title: unknown; lead: unknown; info: Record<string, unknown>; sections: Record<string, unknown> }) {
+export function parsePage(type: EntryType, data: { title: unknown; lead: unknown; info: Record<string, unknown>; sections: Record<string, unknown> }) {
   const short = z.string().trim().max(200, { error: "Keep infobox values under 200 characters." }).default("");
   const long = z.string().trim().max(20000, { error: "Keep each section under 20,000 characters." }).default("");
   return z.object({
@@ -43,7 +43,7 @@ export function parsePage(type: PlaceType, data: { title: unknown; lead: unknown
 }
 
 /** Names the parts of a page that differ between two versions, in page order. */
-export function changedParts(type: PlaceType, before: PageContent | undefined, after: PageContent): string[] {
+export function changedParts(type: EntryType, before: PageContent | undefined, after: PageContent): string[] {
   if (!before) return ["Created"];
   const parts: string[] = [];
   if (before.title !== after.title) parts.push("Title");

@@ -30,7 +30,7 @@ async function openEditor(page: Page) {
 /** World → Region → Settlement, which most tests start from. */
 async function vellumis(page: Page, campaign: string) {
   await newCampaign(page, campaign);
-  await page.getByRole("link", { name: "Add the world" }).click();
+  await page.getByRole("link", { name: "New page" }).click();
   await addPage(page, "World / Plane", "Faerûn");
   await addInside(page, "Faerûn", "Region", "The Grey Marches");
   await addInside(page, "The Grey Marches", "Settlement", "Vellumis");
@@ -38,8 +38,8 @@ async function vellumis(page: Page, campaign: string) {
 
 test("build places down the decided hierarchy, with only allowed kinds offered", async ({ page }) => {
   await newCampaign(page, "Hierarchy test");
-  await page.getByRole("link", { name: "Add the world" }).click();
-  await expect(page.getByRole("radio")).toHaveCount(1); // only a World / Plane sits at the top
+  await page.getByRole("link", { name: "New page" }).click();
+  await expect(page.locator(".kind-option")).toHaveText(["World / Plane", "Faction", "NPC", "Player character", "Party", "Magic item"]); // of the places, only a World / Plane sits at the top
   await addPage(page, "World / Plane", "Faerûn", "The world of the Forgotten Realms.");
 
   await page.getByRole("link", { name: "Add a place inside Faerûn" }).click();
@@ -165,7 +165,7 @@ test("a save from an out-of-date editor never overwrites newer text", async ({ p
 
 test("a page needs a title", async ({ page }) => {
   await newCampaign(page, "Validation test");
-  await page.getByRole("link", { name: "Add the world" }).click();
+  await page.getByRole("link", { name: "New page" }).click();
   await page.getByLabel("Lead").fill("Kept after the error.");
   await page.getByRole("button", { name: "Create page" }).click();
   await expect(page.getByText("Give the page a title.")).toBeVisible();

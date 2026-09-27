@@ -2,13 +2,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
-import { getPlace, insertPlace, listPlaces, restorePlaceVersion, savePlace as savePlaceData } from "@/lib/dal";
+import { getPage, insertPage, listPages, restorePageVersion, savePage as savePageData } from "@/lib/dal";
 import { linkIndex, toStored, type LinkIndex } from "@/lib/links";
-import { infoFields, writtenFields } from "@/lib/reference";
-import { NewPlaceInput, parsePage } from "@/lib/validation";
+import { REF_FIELDS, infoFields, writtenFields } from "@/lib/reference";
+import { NewPageInput, parsePage } from "@/lib/validation";
 
 /** `values` echoes what was typed, so a rejected form keeps the GM's text. */
-export type PlaceFormState = { error?: string; fieldErrors?: Record<string, string[] | undefined>; values?: Record<string, string> } | undefined;
+export type PageFormState = { error?: string; fieldErrors?: Record<string, string[] | undefined>; values?: Record<string, string> } | undefined;
 
 const text = (v: FormDataEntryValue | null) => (typeof v === "string" ? v : "");
 const wiki = (campaignId: string) => `/c/${campaignId}/wiki`;
@@ -24,20 +24,20 @@ function storeLinks(fields: Record<string, string>, index: LinkIndex) {
   return { out, errors };
 }
 
-export async function createPlace(campaignId: string, parentId: string | null, _: PlaceFormState, formData: FormData): Promise<PlaceFormState> {
+export async function createPage(campaignId: string, parentId: string | null, _: PageFormState, formData: FormData): Promise<PageFormState> {
   const values = { type: text(formData.get("type")), title: text(formData.get("title")), lead: text(formData.get("lead")) };
-  const parsed = NewPlaceInput.safeParse(values);
+  const parsed = NewPageInput.safeParse(values);
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors, values };
-  const links = storeLinks({ lead: parsed.data.lead }, linkIndex(await listPlaces(campaignId)));
+  const links = storeLinks({ lead: parsed.data.lead }, linkIndex(await listPages(campaignId)));
   if (Object.keys(links.errors).length) return { fieldErrors: links.errors, values };
-  const r = await insertPlace(campaignId, parentId, { ...parsed.data, lead: links.out.lead });
+  const r = await insertPage(campaignId, parentId, { ...parsed.data, lead: links.out.lead });
   if ("error" in r) return { error: r.error, values };
   revalidatePath(wiki(campaignId), "layout");
   redirect(`${wiki(campaignId)}/${r.id}`);
 }
 
-export async function savePlace(campaignId: string, placeId: string, basedOn: number, _: PlaceFormState, formData: FormData): Promise<PlaceFormState> {
-  const p = await getPlace(campaignId, placeId);
+export async function savePage(campaignId: string, pageId: string, basedOn: number, _: PageFormState, formData: FormData): Promise<PageFormState> {
+  const p = await getPage(campaignId, pageId);
   const infoKeys = infoFields(p.type), sectionKeys = writtenFields(p.type).map((f) => f.key);
   // Form names: "title", "lead", "parent", "i.<infobox label>", "s.<section key>".
   const values: Record<string, string> = { title: text(formData.get("title")), lead: text(formData.get("lead")), parent: text(formData.get("parent")) };
@@ -55,26 +55,27 @@ export async function savePlace(campaignId: string, placeId: string, basedOn: nu
     return { fieldErrors, values };
   }
   const flat: Record<string, string> = { lead: parsed.data.lead };
-  for (const [k, v] of Object.entries(parsed.data.info)) flat[`i.${k}`] = v;
+  // Location, Faction and Holder come from a list of pages (an id); they are stored as a link to that page.
+  for (const [k, v] of Object.entries(parsed.data.info)) flat[`i.${k}`] = REF_FIELDS[k] ? `[[${v}]]` : v;
   for (const [k, v] of Object.entries(parsed.data.sections)) flat[`s.${k}`] = v;
-  const links = storeLinks(flat, linkIndex(await listPlaces(campaignId)));
+  const links = storeLinks(flat, linkIndex(await listPages(campaignId)));
   if (Object.keys(links.errors).length) return { fieldErrors: links.errors, values };
   const content = {
     title: parsed.data.title, lead: links.out.lead,
     info: Object.fromEntries(Object.keys(parsed.data.info).map((k) => [k, links.out[`i.${k}`]])),
     sections: Object.fromEntries(Object.keys(parsed.data.sections).map((k) => [k, links.out[`s.${k}`]])),
   };
-  const r = await savePlaceData(campaignId, placeId, basedOn, content, values.parent || null);
+  const r = await savePageData(campaignId, pageId, basedOn, content, values.parent || null);
   if ("error" in r) return { error: r.error, values };
   if ("conflict" in r) {
     return { values, error: `This page was saved somewhere else while you were editing (it is now version ${r.conflict}). Nothing was overwritten. Your text is still here: copy what you need, then open the editor again.` };
   }
   revalidatePath(wiki(campaignId), "layout");
-  redirect(`${wiki(campaignId)}/${placeId}`);
+  redirect(`${wiki(campaignId)}/${pageId}`);
 }
 
-export async function restoreVersion(campaignId: string, placeId: string, number: number) {
-  await restorePlaceVersion(campaignId, placeId, number);
+export async function restoreVersion(campaignId: string, pageId: string, number: number) {
+  await restorePageVersion(campaignId, pageId, number);
   revalidatePath(wiki(campaignId), "layout");
-  redirect(`${wiki(campaignId)}/${placeId}`);
+  redirect(`${wiki(campaignId)}/${pageId}`);
 }

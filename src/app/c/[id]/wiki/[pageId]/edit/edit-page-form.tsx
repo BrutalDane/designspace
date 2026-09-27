@@ -3,19 +3,20 @@ import { useActionState } from "react";
 import Link from "next/link";
 import type { Field } from "@/lib/reference";
 import type { PageContent } from "@/lib/validation";
-import type { PlaceFormState } from "../../actions";
+import type { PageFormState } from "../../actions";
 
 type Props = {
-  action: (s: PlaceFormState, f: FormData) => Promise<PlaceFormState>;
+  action: (s: PageFormState, f: FormData) => Promise<PageFormState>;
   initial: PageContent;
   parent: { current: string; options: { id: string; label: string }[]; hint: string } | null;
   info: string[];
+  choices: Record<string, { id: string; label: string }[]>; // infobox fields that point at another page
   sections: Field[];
   cancelHref: string;
 };
 
 /** The page editor, in the prototype's order: Title, Parent, Lead, infobox fields, then the type's sections. */
-export function EditPlaceForm({ action, initial, parent, info, sections, cancelHref }: Props) {
+export function EditPageForm({ action, initial, parent, info, choices, sections, cancelHref }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const err = (k: string) => state?.fieldErrors?.[k]?.[0];
   // After a rejected save the form shows what was typed, never the older saved text.
@@ -41,7 +42,12 @@ export function EditPlaceForm({ action, initial, parent, info, sections, cancelH
       </label>
       {info.map((k) => (
         <label className="field" key={k}>{k}
-          <input name={`i.${k}`} maxLength={200} defaultValue={value(`i.${k}`, initial.info[k] ?? "")} aria-describedby={`e-i.${k}`} />
+          {choices[k] ? (
+            <select name={`i.${k}`} defaultValue={value(`i.${k}`, initial.info[k] ?? "")} aria-describedby={`e-i.${k}`}>
+              <option value="">Not set</option>
+              {choices[k].map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+            </select>
+          ) : <input name={`i.${k}`} maxLength={200} defaultValue={value(`i.${k}`, initial.info[k] ?? "")} aria-describedby={`e-i.${k}`} />}
           {errorFor(`i.${k}`)}
         </label>
       ))}

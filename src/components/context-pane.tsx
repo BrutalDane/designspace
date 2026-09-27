@@ -1,18 +1,18 @@
 import Link from "next/link";
-import { PLACE_TYPES, isAuto, type PlaceType } from "@/lib/reference";
+import { ENTRY_TYPES, isAuto, type EntryType } from "@/lib/reference";
 import type { PageContent } from "@/lib/validation";
 
-type Page = { id: string; title: string; type: PlaceType };
+type Page = { id: string; title: string; type: EntryType };
 type Version = { number: number; createdAt: Date; changed: string };
-type Props = { base: string; placeId: string; type: PlaceType; content: PageContent; hasInside: boolean; linksTo: Page[]; linkedFrom: Page[]; versions: Version[] };
+type Props = { base: string; pageId: string; type: EntryType; content: PageContent; hasInside: boolean; linksTo: Page[]; linkedFrom: Page[]; versions: Version[] };
 
 /**
  * The right pane of a Wiki page (reference/wiki-page-design.md → Right pane), in the decided order.
  * Parts that arrive with later milestones (proposals, clocks, player notes, timeline, sessions) are not shown yet.
  */
-export function ContextPane({ base, placeId, type, content, hasInside, linksTo, linkedFrom, versions }: Props) {
+export function ContextPane({ base, pageId, type, content, hasInside, linksTo, linkedFrom, versions }: Props) {
   // "On this page": the sections that have content, grouped as on the page (the read-aloud panel sits above them).
-  const toc = PLACE_TYPES[type].groups.flatMap((g) => g.fields
+  const toc = ENTRY_TYPES[type].groups.flatMap((g) => g.fields
     .filter((f) => f.key !== "impression" && (f.key === "CHILDREN" ? hasInside : !isAuto(f.key) && content.sections[f.key]))
     .map((f) => ({ ...f, group: g.name })));
   const when = (d: Date) => d.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
@@ -33,7 +33,7 @@ export function ContextPane({ base, placeId, type, content, hasInside, linksTo, 
       )}
       <h3>Linked from · {linkedFrom.length}</h3>
       <ul>
-        {linkedFrom.map((p) => <li key={p.id}><Link className="wl" href={`${base}/${p.id}`}>{p.title}</Link> <span className="rel">{PLACE_TYPES[p.type].label}</span></li>)}
+        {linkedFrom.map((p) => <li key={p.id}><Link className="wl" href={`${base}/${p.id}`}>{p.title}</Link> <span className="rel">{ENTRY_TYPES[p.type].label}</span></li>)}
         {linkedFrom.length === 0 && <li className="muted">Nothing links here yet</li>}
       </ul>
       {linksTo.length > 0 && (
@@ -46,12 +46,12 @@ export function ContextPane({ base, placeId, type, content, hasInside, linksTo, 
       <ul className="hist">
         {versions.slice(0, 5).map((v) => (
           <li key={v.number}>
-            <Link href={`${base}/${placeId}/history/${v.number}`}>Version {v.number}</Link> <span className="mono">{when(v.createdAt)}</span>
+            <Link href={`${base}/${pageId}/history/${v.number}`}>Version {v.number}</Link> <span className="mono">{when(v.createdAt)}</span>
             <br /><span className="small">{v.changed}</span>
           </li>
         ))}
       </ul>
-      <p className="small"><Link href={`${base}/${placeId}/history`}>Full history</Link></p>
+      <p className="small"><Link href={`${base}/${pageId}/history`}>Full history</Link></p>
     </aside>
   );
 }

@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPlace, getVersion, listPlaces } from "@/lib/dal";
+import { getPage, getVersion, listPages } from "@/lib/dal";
 import { ancestors } from "@/lib/tree";
 import { linkIndex } from "@/lib/links";
-import { PlaceArticle } from "@/components/place-article";
+import { PageArticle } from "@/components/page-article";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { restoreVersion } from "../../../actions";
 
-type Props = { params: Promise<{ id: string; placeId: string; n: string }> };
+type Props = { params: Promise<{ id: string; pageId: string; n: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id, placeId, n } = await params;
-  return { title: `Version ${Number(n)} of ${(await getPlace(id, placeId)).current.title} · Designspace` };
+  const { id, pageId, n } = await params;
+  return { title: `Version ${Number(n)} of ${(await getPage(id, pageId)).current.title} · Designspace` };
 }
 
 export default async function Page({ params }: Props) {
-  const { id, placeId, n } = await params;
-  const [p, places, v] = await Promise.all([getPlace(id, placeId), listPlaces(id), getVersion(id, placeId, Number(n))]);
+  const { id, pageId, n } = await params;
+  const [p, places, v] = await Promise.all([getPage(id, pageId), listPages(id), getVersion(id, pageId, Number(n))]);
   const base = `/c/${id}/wiki`;
   const isCurrent = v.number === p.current.number;
   return (
@@ -36,7 +36,7 @@ export default async function Page({ params }: Props) {
           </>
         )}
       </div>
-      <PlaceArticle type={p.type} content={v} base={base} index={linkIndex(places)} />
+      <PageArticle type={p.type} content={v} base={base} index={linkIndex(places)} />
     </article>
   );
 }

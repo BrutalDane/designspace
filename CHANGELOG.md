@@ -1,5 +1,12 @@
 # Changelog
 
+## M1 slice 3: People and groups (2026-09-27)
+- New page types from the reference: Faction, NPC, Player character, Party and Magic item, each with its decided layout (monogram badge, Wants / Fears / Secret or Drive / Burden / Secret, Voice; Public face / Hidden truth and Will do / Won't do; item pills and mechanics box; party members).
+- Lists that build themselves: People here (anywhere inside a place), Members (including branches), Carries, and the party's player characters.
+- Location, Faction and Holder are picked from a list, never typed.
+- The tree is grouped by type group with counts; "New page" asks "What are you making?".
+- Tests: the new types and lists, accessibility of every new layout, and that a forged reference can't point into another campaign.
+
 ## M1 slice 2: Links (2026-09-27)
 - Pages show links written as [[Title]] or [[Title|shown text]] in the lead, infobox and sections; links to pages that don't exist yet show grey and come alive when the page is made. The GM doesn't type links: Worldbuilding will write them (M4).
 - Renaming a page keeps every link to it working.
