@@ -9,6 +9,11 @@ _Last updated: 2026-09-27 (session 2, Claude Code on Thor's Windows computer)_
 **M1 slice 1 (Places in the Wiki): built on branch `m1/places`, waiting for Thor to try it.** `npm run check` is green
 (13 unit tests, 18 browser journeys). The local database already has the new tables (backup taken first).
 
+## First, before Thor tries slice 1
+Slice 1 drifted from the decided design (invented section lists, missing place types, loosened nesting, hidden empty
+sections). Fix it on `m1/places` using `reference/README.md` → "Known drift to fix" and `reference/wiki-page-design.md`,
+re-run `npm run check`, then update the checks below to match.
+
 ## Waiting on Thor
 Try slice 1 (checks below). Anything that feels off goes in FRICTION.md; then Claude merges `m1/places` into main and pushes.
 
