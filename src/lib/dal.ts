@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { db, schema } from "@/db";
 import { childTypes, PLACE_TYPES, type PlaceType } from "@/lib/reference";
 import { ancestors } from "@/lib/tree";
+import { linkIndex, linkTargets, pageText } from "@/lib/links";
 import type { NewPlaceInput, PageContent } from "@/lib/validation";
 
 /**
@@ -150,4 +151,25 @@ export async function restorePlaceVersion(campaignId: string, placeId: string, n
   const p = await getPlace(campaignId, placeId);
   const v = await getVersion(campaignId, placeId, number);
   return savePlace(campaignId, placeId, p.current.number, { title: v.title, lead: v.lead, info: v.info, sections: v.sections }, p.parentId);
+}
+
+/** The current text of every place in the campaign, for working out links. */
+const listPlaceTexts = cache(async (campaignId: string) => {
+  const c = await getCampaign(campaignId);
+  const { entry, entryRevision } = schema;
+  return db.selectDistinctOn([entryRevision.entryId], { id: entry.id, lead: entryRevision.lead, info: entryRevision.info, sections: entryRevision.sections })
+    .from(entry).innerJoin(entryRevision, eq(entryRevision.entryId, entry.id))
+    .where(eq(entry.campaignId, c.id))
+    .orderBy(entryRevision.entryId, desc(entryRevision.number));
+});
+
+/** Pages this place links to, and pages that link to it. Worked out from page text; nothing is stored twice. */
+export async function placeLinks(campaignId: string, placeId: string) {
+  const [p, places, texts] = await Promise.all([getPlace(campaignId, placeId), listPlaces(campaignId), listPlaceTexts(campaignId)]);
+  const index = linkIndex(places);
+  const byId = new Map(places.map((x) => [x.id, x]));
+  const linksTo = linkTargets(pageText(p.current), index).filter((id) => id !== p.id);
+  const linkedFrom = texts.filter((t) => t.id !== p.id && linkTargets(pageText(t), index).includes(p.id)).map((t) => t.id);
+  const pick = (ids: string[]) => ids.map((id) => byId.get(id)!).filter(Boolean).sort((a, b) => a.title.localeCompare(b.title));
+  return { linksTo: pick(linksTo), linkedFrom: pick(linkedFrom) };
 }

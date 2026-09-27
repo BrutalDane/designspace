@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getPlace, listPlaces, validParents } from "@/lib/dal";
 import { PLACE_TYPES, infoFields, writtenFields } from "@/lib/reference";
 import { ancestors } from "@/lib/tree";
+import { linkIndex, toEditable } from "@/lib/links";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { savePlace } from "../../actions";
 import { EditPlaceForm } from "./edit-place-form";
@@ -18,6 +19,13 @@ export default async function Page({ params }: Props) {
   const [p, places, parents] = await Promise.all([getPlace(id, placeId), listPlaces(id), validParents(id, placeId)]);
   const base = `/c/${id}/wiki`;
   const T = PLACE_TYPES[p.type];
+  // Saved links hold page ids; the editor shows them as [[Title]] again.
+  const index = linkIndex(places), ed = (t: string) => toEditable(t, index);
+  const editable = {
+    title: p.current.title, lead: ed(p.current.lead),
+    info: Object.fromEntries(Object.entries(p.current.info).map(([k, v]) => [k, ed(v)])),
+    sections: Object.fromEntries(Object.entries(p.current.sections).map(([k, v]) => [k, ed(v)])),
+  };
   const label = (x: { title: string; type: keyof typeof PLACE_TYPES }) => `${x.title} · ${PLACE_TYPES[x.type].label}`;
   // A page placed before the nesting rules were fixed keeps its current parent until the GM picks a valid one.
   const current = places.find((x) => x.id === p.parentId);
@@ -33,7 +41,7 @@ export default async function Page({ params }: Props) {
       <p className="notice">You are the GM, so direct edits become canon when you save.</p>
       <EditPlaceForm
         action={savePlace.bind(null, id, p.id, p.current.number)}
-        initial={p.current}
+        initial={editable}
         parent={T.parents.length > 0 ? {
           current: p.parentId ?? "",
           options: parentOptions,

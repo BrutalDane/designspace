@@ -2,7 +2,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
-import { getPlace, insertPlace, restorePlaceVersion, savePlace as savePlaceData } from "@/lib/dal";
+import { getPlace, insertPlace, listPlaces, restorePlaceVersion, savePlace as savePlaceData } from "@/lib/dal";
+import { linkIndex, toStored, type LinkIndex } from "@/lib/links";
 import { infoFields, writtenFields } from "@/lib/reference";
 import { NewPlaceInput, parsePage } from "@/lib/validation";
 
@@ -12,11 +13,24 @@ export type PlaceFormState = { error?: string; fieldErrors?: Record<string, stri
 const text = (v: FormDataEntryValue | null) => (typeof v === "string" ? v : "");
 const wiki = (campaignId: string) => `/c/${campaignId}/wiki`;
 
+/** Turns typed [[Title]] links into stable page ids. Ambiguous titles become an error on that field. */
+function storeLinks(fields: Record<string, string>, index: LinkIndex) {
+  const out: Record<string, string> = {}, errors: Record<string, string[]> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    const r = toStored(v, index);
+    out[k] = r.text;
+    if (r.ambiguous.length) errors[k] = [`Two pages are called "${r.ambiguous[0]}". Rename one of them, then link again.`];
+  }
+  return { out, errors };
+}
+
 export async function createPlace(campaignId: string, parentId: string | null, _: PlaceFormState, formData: FormData): Promise<PlaceFormState> {
   const values = { type: text(formData.get("type")), title: text(formData.get("title")), lead: text(formData.get("lead")) };
   const parsed = NewPlaceInput.safeParse(values);
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors, values };
-  const r = await insertPlace(campaignId, parentId, parsed.data);
+  const links = storeLinks({ lead: parsed.data.lead }, linkIndex(await listPlaces(campaignId)));
+  if (Object.keys(links.errors).length) return { fieldErrors: links.errors, values };
+  const r = await insertPlace(campaignId, parentId, { ...parsed.data, lead: links.out.lead });
   if ("error" in r) return { error: r.error, values };
   revalidatePath(wiki(campaignId), "layout");
   redirect(`${wiki(campaignId)}/${r.id}`);
@@ -40,7 +54,17 @@ export async function savePlace(campaignId: string, placeId: string, basedOn: nu
     for (const i of parsed.error.issues) (fieldErrors[name(i.path)] ??= []).push(i.message);
     return { fieldErrors, values };
   }
-  const r = await savePlaceData(campaignId, placeId, basedOn, parsed.data, values.parent || null);
+  const flat: Record<string, string> = { lead: parsed.data.lead };
+  for (const [k, v] of Object.entries(parsed.data.info)) flat[`i.${k}`] = v;
+  for (const [k, v] of Object.entries(parsed.data.sections)) flat[`s.${k}`] = v;
+  const links = storeLinks(flat, linkIndex(await listPlaces(campaignId)));
+  if (Object.keys(links.errors).length) return { fieldErrors: links.errors, values };
+  const content = {
+    title: parsed.data.title, lead: links.out.lead,
+    info: Object.fromEntries(Object.keys(parsed.data.info).map((k) => [k, links.out[`i.${k}`]])),
+    sections: Object.fromEntries(Object.keys(parsed.data.sections).map((k) => [k, links.out[`s.${k}`]])),
+  };
+  const r = await savePlaceData(campaignId, placeId, basedOn, content, values.parent || null);
   if ("error" in r) return { error: r.error, values };
   if ("conflict" in r) {
     return { values, error: `This page was saved somewhere else while you were editing (it is now version ${r.conflict}). Nothing was overwritten. Your text is still here: copy what you need, then open the editor again.` };

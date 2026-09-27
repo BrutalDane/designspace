@@ -127,7 +127,8 @@ a.btn.ghost { color: var(--accent); }
 .grp-block.gm .grp-h { color: var(--danger); border-bottom-color: var(--danger); }
 .sec { margin-top: 16px; }
 .sec h2 { font-size: 1.2rem; margin-bottom: 6px; }
-.sec p { margin: .45em 0; max-width: 70ch; white-space: pre-line; }
+.sec p { margin: .45em 0; max-width: 70ch; }
+.sec ul, .lead ul, .impression ul { margin: .4em 0; padding-left: 1.2em; max-width: 70ch; }
 .empty-note { margin: 26px 0 0; color: var(--ink-3); font-size: .9rem; border-top: 1px dashed var(--line); padding-top: 12px; }
 .grp-empty { margin-top: 18px; font-size: .88rem; color: var(--ink-3); border-left: 2px dashed var(--line); padding: 4px 10px; }
 .grp-empty strong { color: var(--ink-2); margin-right: 4px; }
@@ -159,6 +160,28 @@ a.btn.ghost { color: var(--accent); }
 .kind-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .sticky-actions { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0; border-top: 1px solid var(--line); }
 
+/* Links and the right pane (prototype: a.wl, .wl.un, .ctx, .toc, .hist) */
+.page:has(.wiki) { max-width: 1600px; }
+a.wl { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+a.wl:hover { border-bottom-color: var(--accent); }
+.wl.un { color: var(--ink-3); border-bottom: 1px dashed var(--ink-3); cursor: help; }
+.place-layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 28px; align-items: start; }
+.ctx { border-left: 1px solid var(--line); padding-left: 20px; position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; }
+.ctx h3 { font-family: var(--sans); font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); margin: 18px 0 6px; }
+.ctx h3:first-child { margin-top: 0; }
+.ctx ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: .92rem; }
+.ctx .rel { color: var(--ink-3); font-size: .8rem; }
+.ctx p { margin: 8px 0 0; }
+.toc { gap: 2px !important; font-size: .9rem; }
+.toc a { color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+.toc-g { display: block; font-size: .68rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; margin-top: 6px; }
+.hist li { border-left: 2px solid var(--line); padding-left: 10px; }
+
+@media (max-width: 1300px) {
+  .place-layout { grid-template-columns: minmax(0, 1fr); }
+  .ctx { position: static; max-height: none; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }
+}
 @media (max-width: 1000px) {
   .article { grid-template-columns: minmax(0, 1fr); }
   .infobox { position: static; order: -1; }

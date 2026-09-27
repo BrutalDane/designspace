@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPlace, getVersion, listPlaces } from "@/lib/dal";
 import { ancestors } from "@/lib/tree";
+import { linkIndex } from "@/lib/links";
 import { PlaceArticle } from "@/components/place-article";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { restoreVersion } from "../../../actions";
@@ -35,7 +36,7 @@ export default async function Page({ params }: Props) {
           </>
         )}
       </div>
-      <PlaceArticle type={p.type} content={v} base={base} />
+      <PlaceArticle type={p.type} content={v} base={base} index={linkIndex(places)} />
     </article>
   );
 }
