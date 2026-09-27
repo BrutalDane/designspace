@@ -10,9 +10,16 @@ local database with migrations, backup + restore check, quality gate (10 browser
 accessibility, unit tests, lint, types, build) and the GitHub Actions workflow.
 
 ## Waiting on Thor
-1. Install Node.js LTS, Git and Docker Desktop (Claude guides).
-2. Create a private GitHub repository named `designspace` (Claude guides), so the code is pushed and the quality gate runs.
-3. Run `npm run setup`, sign in, try the M0 checks (below), and say what felt off.
+1. Open this folder in **Claude Code** (Claude desktop app → Code) so Claude can run commands on this Windows computer.
+   The Cowork session that built M0 could only reach this folder through an isolated Linux environment, not Windows itself.
+2. Create a private GitHub repository named `designspace` on github.com (no README).
+3. Type the GM password yourself when `npm run gm:create` asks for it (Claude never sees it).
+
+## Next session (Claude Code, on Thor's Windows computer)
+1. Check for Node.js LTS (22+), Git and Docker Desktop; install what's missing with `winget` (Thor approves the installer prompts).
+2. `npm run setup` (Thor types the GM password), `npm run dev`, walk Thor through the M0 checks below.
+3. Connect GitHub: `git remote add origin https://github.com/<user>/designspace.git`, `git push -u origin main`; confirm the Quality gate run is green.
+4. Record anything that felt off in FRICTION.md, then start M1 slice 1.
 
 ## M0 checks for Thor
 1. `npm run dev`, open http://localhost:3000. You're sent to sign in.
