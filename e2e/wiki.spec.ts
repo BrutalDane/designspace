@@ -136,6 +136,7 @@ test("move a page by changing its Parent; only allowed parents are offered", asy
   const tree = page.getByRole("navigation", { name: "Campaign pages" });
   await tree.getByRole("button", { name: "Expand The Grey Marches" }).click();
   await tree.getByRole("link", { name: "Vellumis" }).click();
+  await expect(page.getByRole("heading", { name: "Vellumis", level: 1 })).toBeVisible();
   await openEditor(page);
   const parent = page.getByLabel("Parent");
   await expect(parent.getByRole("option")).toHaveText(["The Grey Marches · Region", "The Vale of Thren · Region"]); // no World: a Settlement sits under a Region

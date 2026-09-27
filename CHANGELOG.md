@@ -1,7 +1,7 @@
 # Changelog
 
 ## M1 slice 2: Links (2026-09-27)
-- Link pages with [[Title]] or [[Title|shown text]] in the lead, infobox and sections; links to pages that don't exist yet show grey and come alive when the page is made.
+- Pages show links written as [[Title]] or [[Title|shown text]] in the lead, infobox and sections; links to pages that don't exist yet show grey and come alive when the page is made. The GM doesn't type links: Worldbuilding will write them (M4).
 - Renaming a page keeps every link to it working.
 - **Bold**, *italic*, line breaks and "- " lists in page text, as in the prototype.
 - Right pane: On this page, Linked from, Links to and recent history.

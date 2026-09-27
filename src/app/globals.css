@@ -165,7 +165,6 @@ a.btn.ghost { color: var(--accent); }
 a.wl { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
 a.wl:hover { border-bottom-color: var(--accent); }
 .wl.un { color: var(--ink-3); border-bottom: 1px dashed var(--ink-3); cursor: help; }
-.mono-inline { font-family: var(--mono); font-size: .85em; }
 .place-layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 28px; align-items: start; }
 .ctx { border-left: 1px solid var(--line); padding-left: 20px; position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; }
 .ctx h3 { font-family: var(--sans); font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); margin: 18px 0 6px; }

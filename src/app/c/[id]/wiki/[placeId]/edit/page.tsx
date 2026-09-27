@@ -38,7 +38,7 @@ export default async function Page({ params }: Props) {
       <Breadcrumbs base={base} path={[...ancestors(places, p.id), { id: p.id, title: p.current.title }]} current="Edit" />
       <p className="eyebrow">Editing directly · {T.label} layout</p>
       <h1 id="edit-h" className="display">{p.current.title}</h1>
-      <p className="notice">You are the GM, so direct edits become canon when you save. Use <span className="mono-inline">[[Page title]]</span> for links.</p>
+      <p className="notice">You are the GM, so direct edits become canon when you save.</p>
       <EditPlaceForm
         action={savePlace.bind(null, id, p.id, p.current.number)}
         initial={editable}
