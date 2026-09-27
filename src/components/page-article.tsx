@@ -1,22 +1,27 @@
 import Link from "next/link";
 import { INFOBOX_IMAGE, ENTRY_TYPES, infoFields, isAuto, type EntryType } from "@/lib/reference";
-import type { PageContent } from "@/lib/validation";
+import type { PageVersion } from "@/lib/validation";
 import type { LinkIndex } from "@/lib/links";
+import { CLOCK_SEGMENTS, type Area, type PageData } from "@/lib/page-data";
 import { RichText } from "./rich-text";
+import { Clock } from "./clock";
+import { RouteList } from "./route-list";
 
-export type Near = { id: string; title: string; type: EntryType; lead: string; info: Record<string, string> };
+export type Near = { id: string; title: string; type: EntryType; lead: string; info: Record<string, string>; data: PageData };
 /** The lists that build themselves for this page (reference/wiki-page-design.md → Automatic lists). */
-export type AutoLists = { inside: Near[]; people: Near[]; members: Near[]; carries: Near[]; party: Near[] };
+export type AutoLists = { inside: Near[]; people: Near[]; members: Near[]; carries: Near[]; party: Near[]; clocks: Near[] };
 type Props = {
   type: EntryType;
-  content: PageContent;
+  content: PageVersion;
   base: string;          // e.g. /c/<id>/wiki
   index: LinkIndex;      // resolves [[links]] to pages in this campaign
   parent?: Near | null;  // shown in the infobox
   lists?: AutoLists;     // left out when showing an older version
+  ruleset?: string;      // the campaign's ruleset, shown on rule references
+  markRoute?: (index: number, found: boolean, form?: FormData) => Promise<void>; // ticks clue routes; absent on old versions
 };
 
-const NONE: AutoLists = { inside: [], people: [], members: [], carries: [], party: [] };
+const NONE: AutoLists = { inside: [], people: [], members: [], carries: [], party: [], clocks: [] };
 const firstSentence = (lead: string) => (lead ? `${lead.split(". ")[0].replace(/\.$/, "")}.` : "");
 /** Initials for the round badge, as in the prototype. */
 export const monogram = (t: string) => t.replace(/^(The|Lady|Captain|Lord)\s+/, "").split(/\s+/).slice(0, 2).map((w) => w[0] ?? "").join("").toUpperCase();
@@ -53,6 +58,31 @@ function People({ base, people, index }: { base: string; people: Near[]; index: 
   );
 }
 
+function AreasTable({ areas, index, base }: { areas: Area[]; index: LinkIndex; base: string }) {
+  return (
+    <div className="tablewrap">
+      <table className="areas">
+        <thead><tr><th scope="col">#</th><th scope="col">Area</th><th scope="col">What is here</th></tr></thead>
+        <tbody>{areas.map((a, i) => <tr key={i}><td className="mono">{a.n}</td><td><strong>{a.area}</strong></td><td><RichText text={a.text} index={index} base={base} inline /></td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
+
+/** The clocks of threads this page drives, shown near the top of a faction (as in the prototype). */
+function FrontClocks({ base, threads }: { base: string; threads: Near[] }) {
+  return (
+    <div className="front-clock" aria-label="Clocks">
+      {threads.map((t) => t.data.clock && (
+        <div key={t.id}>
+          <b><Link href={`${base}/${t.id}`}>{t.title}</Link></b> <Clock pos={t.data.clock.pos} /> <span className="mono">{t.data.clock.pos}/{CLOCK_SEGMENTS}</span>
+          {t.data.clock.portent && <div className="muted small">Next: {t.data.clock.portent}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Items({ base, items }: { base: string; items: Near[] }) {
   return <ul>{items.map((i) => <li key={i.id}><Link href={`${base}/${i.id}`}>{i.title}</Link>{i.info.Rarity && <span className="muted small"> · {i.info.Rarity}</span>}</li>)}</ul>;
 }
@@ -62,7 +92,7 @@ function Items({ base, items }: { base: string; items: Near[] }) {
  * public face and hidden truth, item pills), grouped sections with the "At the table" GM group, quiet "Not written yet"
  * lines instead of empty boxes, automatic lists, and the infobox.
  */
-export function PageArticle({ type, content, base, index, parent = null, lists = NONE }: Props) {
+export function PageArticle({ type, content, base, index, parent = null, lists = NONE, ruleset, markRoute }: Props) {
   const T = ENTRY_TYPES[type];
   const text = (k: string) => content.sections[k];
   const rich = (k: string) => <RichText text={text(k)} index={index} base={base} />;
@@ -74,7 +104,8 @@ export function PageArticle({ type, content, base, index, parent = null, lists =
     if (key === "PEOPLE") return lists.people.length ? <People base={base} people={lists.people} index={index} /> : null;
     if (key === "MEMBERS") return lists.members.length ? <People base={base} people={lists.members} index={index} /> : null;
     if (key === "CARRIES") return lists.carries.length ? <Items base={base} items={lists.carries} /> : null;
-    return null; // Keyed areas arrive with Dungeon level
+    if (key === "AREAS") return content.data.areas?.length ? <AreasTable areas={content.data.areas} index={index} base={base} /> : null;
+    return null;
   };
 
   // The family's own elements, between the lead and the groups (as in the prototype).
@@ -107,13 +138,46 @@ export function PageArticle({ type, content, base, index, parent = null, lists =
     );
   } else if (T.fam === "party") {
     family = <section className="sec" aria-labelledby="s-members"><h2 id="s-members">Members</h2>{lists.party.length ? <People base={base} people={lists.party} index={index} /> : <p className="muted">No player characters yet.</p>}</section>;
+  } else if (T.fam === "front") {
+    const clock = content.data.clock;
+    family = (
+      <>
+        {clock && <div className="bigclock"><Clock pos={clock.pos} /><span className="mono">{clock.pos}/{CLOCK_SEGMENTS}</span>{clock.portent && <small>Next: {clock.portent}</small>}</div>}
+        <ol className="ladder">
+          <li><div className="eyebrow">Impulse</div>{text("impulse") ? rich("impulse") : notSet}</li>
+          <li><div className="eyebrow">Portents</div>{text("portents") ? rich("portents") : notSet}</li>
+          <li className="doom"><div className="eyebrow">If ignored</div>{text("doom") ? rich("doom") : notSet}</li>
+        </ol>
+      </>
+    );
+  } else if (T.fam === "clue") {
+    const routes = content.data.routes ?? [];
+    const labels = routes.map((r, i) => <RichText key={i} text={r.text} index={index} base={base} inline />);
+    family = (
+      <>
+        <section className="sec" aria-labelledby="s-truth"><h2 id="s-truth">The truth it reveals</h2>{text("truth") ? rich("truth") : notSet}</section>
+        <section className="sec" aria-labelledby="s-routes">
+          <h2 id="s-routes">Routes to it <span className={`pill ${routes.length >= 3 ? "p-accepted" : "p-hot"}`}>{routes.length} of 3</span></h2>
+          {markRoute ? <RouteList routes={routes} mark={markRoute} labels={labels} />
+            : <ul className="routes">{routes.map((r, i) => <li key={i}><span>{labels[i]}</span><span className="muted small">{r.found ? "found" : "not found"}</span></li>)}</ul>}
+          {routes.length < 3 && <p className="warn">Fewer than three routes. If the party misses this one, the truth is gone.</p>}
+        </section>
+      </>
+    );
+  } else if (T.fam === "rule") {
+    family = <div className="item-top"><span className="pill p-prepared">Official rule{ruleset ? ` · ${ruleset}` : ""}</span></div>;
   }
+  if (T.fam === "faction" && lists.clocks.length) {
+    family = <>{family}<FrontClocks base={base} threads={lists.clocks} /></>;
+  }
+  // Fields shown by the family itself are not repeated in the groups (as in the prototype).
+  const shownAbove = new Set(T.fam === "place" ? ["impression"] : T.fam === "front" ? ["impulse", "portents", "doom"] : T.fam === "clue" ? ["truth"] : []);
 
   const groups = T.groups.map((g) => {
     const parts: React.ReactNode[] = [];
     const empty: string[] = [];
     for (const f of g.fields) {
-      if (T.fam === "place" && f.key === "impression") continue; // shown as the read-aloud panel
+      if (shownAbove.has(f.key)) continue;
       const body = isAuto(f.key) ? autoBody(f.key)
         : text(f.key) ? (T.fam === "item" && f.key === "effects" ? <div className="mech">{rich(f.key)}</div> : rich(f.key)) : null;
       if (body) parts.push(<section className="sec" key={f.key} aria-labelledby={`s-${f.key}`}><h2 id={`s-${f.key}`}>{f.label}</h2>{body}</section>);
@@ -138,7 +202,15 @@ export function PageArticle({ type, content, base, index, parent = null, lists =
         {content.lead && <div className="lead"><RichText text={content.lead} index={index} base={base} /></div>}
         {family}
         {groups}
-        {!hasChildrenField && T.kids && lists.inside.length > 0 && (
+        {T.fam === "rule" && (
+          <section className="sec" aria-labelledby="s-rulings">
+            <h2 id="s-rulings">Rulings in this campaign</h2>
+            {lists.inside.length
+              ? <ul>{lists.inside.map((r) => <li key={r.id}><Link href={`${base}/${r.id}`}>{r.title}</Link>{r.lead && <>: <RichText text={r.lead} index={index} base={base} inline /></>}</li>)}</ul>
+              : <p className="muted">None. The rule applies as written.</p>}
+          </section>
+        )}
+        {T.fam !== "rule" && !hasChildrenField && T.kids && lists.inside.length > 0 && (
           <div className="grp-block">
             <div className="grp-h"><span>{T.kids}</span></div>
             <section className="sec" aria-label={T.kids}><Children base={base} inside={lists.inside} index={index} /></section>
@@ -150,7 +222,7 @@ export function PageArticle({ type, content, base, index, parent = null, lists =
   );
 }
 
-function Infobox({ type, content, base, index, parent, inside }: { type: EntryType; content: PageContent; base: string; index: LinkIndex; parent: Near | null; inside: Near[] }) {
+function Infobox({ type, content, base, index, parent, inside }: { type: EntryType; content: PageVersion; base: string; index: LinkIndex; parent: Near | null; inside: Near[] }) {
   const isItem = type === "item"; // an item's facts are its pills, as in the prototype
   const rows = isItem ? [] : ENTRY_TYPES[type].info.filter((k) => (k === "Parent" ? parent : content.info[k]));
   const missing = isItem ? [] : infoFields(type).filter((k) => !content.info[k]);

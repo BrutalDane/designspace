@@ -39,7 +39,7 @@ async function vellumis(page: Page, campaign: string) {
 test("build places down the decided hierarchy, with only allowed kinds offered", async ({ page }) => {
   await newCampaign(page, "Hierarchy test");
   await page.getByRole("link", { name: "New page" }).click();
-  await expect(page.locator(".kind-option")).toHaveText(["World / Plane", "Faction", "NPC", "Player character", "Party", "Magic item"]); // of the places, only a World / Plane sits at the top
+  await expect(page.locator(".kind-group").filter({ hasText: "Places" }).locator(".kind-option")).toHaveText(["World / Plane"]); // of the places, only a World / Plane sits at the top
   await addPage(page, "World / Plane", "Faerûn", "The world of the Forgotten Realms.");
 
   await page.getByRole("link", { name: "Add a place inside Faerûn" }).click();
@@ -59,10 +59,10 @@ test("build places down the decided hierarchy, with only allowed kinds offered",
 
   // The tree opens the path to the current page and can be collapsed and expanded.
   const tree = page.getByRole("navigation", { name: "Campaign pages" });
-  await expect(tree.getByRole("link")).toHaveText(["Faerûn", "The Grey Marches", "Vellumis", "The Underbelly", "Community Kitchen"]);
+  await expect(tree.getByRole("link")).toHaveText(["Campaign State", "Faerûn", "The Grey Marches", "Vellumis", "The Underbelly", "Community Kitchen"]);
   await expect(tree.getByRole("link", { name: "Community Kitchen" })).toHaveAttribute("aria-current", "page");
   await tree.getByRole("button", { name: "Collapse Faerûn" }).click();
-  await expect(tree.getByRole("link")).toHaveText(["Faerûn1"]); // closed branches show their child count
+  await expect(tree.getByRole("link")).toHaveText(["Campaign State", "Faerûn1"]); // closed branches show their child count
   await tree.getByRole("button", { name: "Expand Faerûn" }).click();
   await expect(tree.getByRole("link", { name: "The Grey Marches" })).toBeVisible();
 

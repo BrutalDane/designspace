@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCampaign, getPage, listPages, listVersions, pageLinks } from "@/lib/dal";
-import { ENTRY_TYPES, childTypes } from "@/lib/reference";
+import { ENTRY_TYPES, RULESETS, childTypes } from "@/lib/reference";
 import { ancestors } from "@/lib/tree";
 import { linkIndex } from "@/lib/links";
-import { carries, members, partyMembers, peopleHere } from "@/lib/auto-lists";
+import { carries, drivenBy, members, partyMembers, peopleHere } from "@/lib/auto-lists";
+import { markRoute } from "../actions";
 import { changedParts } from "@/lib/validation";
 import { PageArticle, monogram } from "@/components/page-article";
 import { ContextPane } from "@/components/context-pane";
@@ -22,7 +23,7 @@ const byTitle = <T extends { title: string }>(xs: T[]) => [...xs].sort((a, b) =>
 
 export default async function Page({ params }: Props) {
   const { id, pageId } = await params;
-  const [p, pages, links, versions] = await Promise.all([getPage(id, pageId), listPages(id), pageLinks(id, pageId), listVersions(id, pageId)]);
+  const [c, p, pages, links, versions] = await Promise.all([getCampaign(id), getPage(id, pageId), listPages(id), pageLinks(id, pageId), listVersions(id, pageId)]);
   const base = `/c/${id}/wiki`;
   const T = ENTRY_TYPES[p.type];
   const lists = {
@@ -31,6 +32,7 @@ export default async function Page({ params }: Props) {
     members: byTitle(members(pages, p.id)),
     carries: byTitle(carries(pages, p.id)),
     party: T.fam === "party" ? byTitle(partyMembers(pages)) : [],
+    clocks: byTitle(drivenBy(pages, p.id)),
   };
   const parent = pages.find((x) => x.id === p.parentId) ?? null;
   const title = p.current.title;
@@ -49,14 +51,17 @@ export default async function Page({ params }: Props) {
           <span className="spacer" />
           <Link className="btn" href={`${base}/${p.id}/edit`}>Edit</Link>
         </div>
-        <PageArticle type={p.type} content={p.current} base={base} index={linkIndex(pages)} parent={parent} lists={lists} />
+        <PageArticle
+          type={p.type} content={p.current} base={base} index={linkIndex(pages)} parent={parent} lists={lists}
+          ruleset={RULESETS[c.ruleset]?.short} markRoute={markRoute.bind(null, id, p.id, p.current.number)}
+        />
         {childTypes(p.type).length > 0 && (
           <p className="add-inside"><Link className="btn small" href={`${base}/new?parent=${p.id}`}>{T.fam === "place" ? `Add a place inside ${title}` : `Add a page inside ${title}`}</Link></p>
         )}
       </article>
       <ContextPane
         base={base} pageId={p.id} type={p.type} content={p.current} hasInside={lists.inside.length > 0}
-        linksTo={links.linksTo} linkedFrom={links.linkedFrom}
+        linksTo={links.linksTo} linkedFrom={links.linkedFrom} clocks={lists.clocks}
         versions={versions.map(({ version: v }, i) => ({ number: v.number, createdAt: v.createdAt, changed: changedParts(p.type, versions[i + 1]?.version, v).join(", ") }))}
       />
     </div>
