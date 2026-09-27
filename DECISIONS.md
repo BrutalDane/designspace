@@ -18,3 +18,11 @@ One line each: date · decision · why. Product decisions are Thor's; technical 
 - 2026-09-27 · Scripts start programs without a shell; only `npx` goes through one, and only with plain-word arguments · On Windows a shell splits multi-word arguments, which silently broke the backup restore check.
 - 2026-09-27 · Local dev uses Node.js 24 LTS (installed via winget); CI stays on Node 22 · Both meet `engines: >=22`; the gate passed on both.
 - 2026-09-27 · Commits from Thor's computer are authored as Thor (project-level git setting) · Commits link to his GitHub account.
+- 2026-09-27 · Wiki entries store identity and tree position only; all page text lives in numbered, never-edited versions, and the newest version is the page · One place for each fact; history comes free and can't drift from the page.
+- 2026-09-27 · Saving checks the version the editor started from; a stale save is refused with the typed text kept, never merged or overwritten · Two tabs can't silently lose work.
+- 2026-09-27 · Restoring an old version saves a copy as the newest version · History is never rewritten.
+- 2026-09-27 · Place types, groups, sections, infobox fields and allowed parents are copied exactly from `reference/wiki-page-design.md`; the invented slice-1 sets and loosened nesting are removed · Code follows the reference (reference/README.md).
+- 2026-09-27 · Dungeon level is left for a later slice (it needs keyed areas); Site does not stand in for it · reference/README.md allows this.
+- 2026-09-27 · "Summary" is called "Lead" as in the reference; migrations carry existing text across · One name for one thing.
+- 2026-09-27 · A page placed before the nesting fix keeps its parent until the GM picks an allowed one in the editor's Parent field; nothing is moved automatically · The GM decides; no silent changes to data.
+- 2026-09-27 · Moving a page (Parent) is not a new page version; only the text is versioned · Parent is where the page sits, not what it says.

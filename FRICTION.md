@@ -10,3 +10,5 @@ Anything that felt clumsy, slow or confusing: who noticed, what, and what happen
 | 2026-09-27 | Claude | Setup and backup scripts split multi-word commands on Windows, so the restore check always failed there. CI (Linux) couldn't catch it. | Fixed. Consider a Windows CI run if Windows-only issues recur. |
 | 2026-09-27 | Claude | `gm:create` shows the password on screen while it is typed. | Fixed: hidden while typing, asked twice. |
 | 2026-09-27 | Claude | A terminal opened before Node.js was installed can't find `npm`; a new window is needed. | One-time; accepted. |
+| 2026-09-27 | Thor | Slice 1 felt like forms, not a wiki, and drifted from the decided design (invented sections, missing types, loose nesting, hidden empty sections). Claude had filled gaps from a failed earlier iteration. | Fixed: rebuilt to `reference/` (page anatomy, types, nesting, infobox, read-aloud). Claude no longer uses other iterations. |
+| 2026-09-27 | Claude | The prototype's editor is itself a list of labelled fields (Title, Parent, Lead, infobox fields, sections). Slice 1 now matches it. | Open: ask Thor after he tries it whether editing still feels too much like a form. |

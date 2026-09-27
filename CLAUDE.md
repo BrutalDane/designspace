@@ -7,8 +7,10 @@ Thor is not a programmer: explain in plain language, never ask him to choose bet
 and ask one multiple-choice question only when a choice affects money, privacy, how the tool feels, or can't be undone.
 
 ## Every session
-1. Read `STATUS.md`, then `DECISIONS.md` and `FRICTION.md`. The product reference is prototype v6 and the
-   decisions note in the claude.ai Project "TTRPG - Designspace" (`claude/designspace-decisions.md`, `claude/build-plan.md`).
+1. Read `STATUS.md`, then `DECISIONS.md` and `FRICTION.md`, then `reference/README.md`.
+   **`reference/` is the product reference** (decisions, build plan, Wiki page design, prototype v6). Build what it says.
+   Never invent sections, types, fields, nesting rules or features that are not in it: if something is missing or
+   unclear, ask Thor one multiple-choice question first and log the answer in DECISIONS.md.
 2. Work in slices. Each slice: a short brief (goal, journey in Thor's words, left out, 3–5 checks) →
    build on a branch with tests → `npm run check` green → self-review (code + friction) → Thor tries it → merge.
 3. End of session: update `STATUS.md`, add one-line entries to `DECISIONS.md` / `FRICTION.md` / `CHANGELOG.md`, commit and push.
