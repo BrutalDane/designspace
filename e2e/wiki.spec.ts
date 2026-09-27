@@ -8,104 +8,159 @@ async function newCampaign(page: Page, name: string) {
   await expect(page).toHaveURL(/\/wiki$/);
 }
 
-async function addPlace(page: Page, kind: string, name: string, summary = "") {
-  await page.getByLabel(new RegExp(`^${kind}\\b`)).check();
-  await page.getByLabel("Name").fill(name);
-  if (summary) await page.getByLabel("Summary").fill(summary);
-  await page.getByRole("button", { name: "Create place" }).click();
-  await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+async function addPage(page: Page, kind: string, title: string, lead = "") {
+  await page.getByRole("radio", { name: kind }).check();
+  await page.getByLabel("Title").fill(title);
+  if (lead) await page.getByLabel("Lead").fill(lead);
+  await page.getByRole("button", { name: "Create page" }).click();
+  await expect(page.getByRole("heading", { name: title, level: 1 })).toBeVisible();
 }
 
-test("build a chain of places from world to site, with sensible nesting only", async ({ page }) => {
-  await newCampaign(page, "Atlas test");
-  await page.getByRole("link", { name: "Add the first place" }).click();
-  await expect(page.getByRole("radio")).toHaveCount(3); // World, Region, Settlement at the top
-  await addPlace(page, "World", "Toril", "A world of old empires.");
-  await expect(page.getByText("A world of old empires.")).toBeVisible();
+async function addInside(page: Page, parent: string, kind: string, title: string) {
+  await page.getByRole("link", { name: `Add a place inside ${parent}` }).click();
+  await addPage(page, kind, title);
+}
 
-  await page.getByRole("link", { name: "Add a place inside Toril" }).click();
-  await addPlace(page, "Region", "The Vale of Thren");
-  await page.getByRole("link", { name: "Add a place inside The Vale of Thren" }).click();
-  await addPlace(page, "Settlement", "Larkwater");
-  await page.getByRole("link", { name: "Add a place inside Larkwater" }).click();
-  await addPlace(page, "District", "Bell Quarter");
-  await page.getByRole("link", { name: "Add a place inside Bell Quarter" }).click();
-  await expect(page.getByRole("radio")).toHaveCount(1); // only a Site fits in a district
-  await addPlace(page, "Site", "The Drowned Bell");
+/** World → Region → Settlement, which most tests start from. */
+async function vellumis(page: Page, campaign: string) {
+  await newCampaign(page, campaign);
+  await page.getByRole("link", { name: "Add the world" }).click();
+  await addPage(page, "World / Plane", "Faerûn");
+  await addInside(page, "Faerûn", "Region", "The Grey Marches");
+  await addInside(page, "The Grey Marches", "Settlement", "Vellumis");
+}
 
-  // A site has nothing inside it, and the breadcrumb shows the whole path.
+test("build places down the decided hierarchy, with only allowed kinds offered", async ({ page }) => {
+  await newCampaign(page, "Hierarchy test");
+  await page.getByRole("link", { name: "Add the world" }).click();
+  await expect(page.getByRole("radio")).toHaveCount(1); // only a World / Plane sits at the top
+  await addPage(page, "World / Plane", "Faerûn", "The world of the Forgotten Realms.");
+
+  await page.getByRole("link", { name: "Add a place inside Faerûn" }).click();
+  await expect(page.getByRole("radio")).toHaveCount(1); // a World holds Regions only
+  await addPage(page, "Region", "The Grey Marches");
+  await page.getByRole("link", { name: "Add a place inside The Grey Marches" }).click();
+  await expect(page.locator(".kind-option")).toHaveText(["Region", "Settlement", "Building / Landmark", "Site", "Dungeon"]);
+  await addPage(page, "Settlement", "Vellumis");
+  await addInside(page, "Vellumis", "District", "The Underbelly");
+  await page.getByRole("link", { name: "Add a place inside The Underbelly" }).click();
+  await expect(page.locator(".kind-option")).toHaveText(["Building / Landmark", "Site", "Dungeon"]);
+  await addPage(page, "Building / Landmark", "Community Kitchen");
+
   await expect(page.getByRole("link", { name: /Add a place inside/ })).toHaveCount(0);
   const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
-  await expect(crumbs.getByRole("link")).toHaveText(["Wiki", "Toril", "The Vale of Thren", "Larkwater", "Bell Quarter"]);
+  await expect(crumbs.getByRole("link")).toHaveText(["Wiki", "Faerûn", "The Grey Marches", "Vellumis", "The Underbelly"]);
 
-  // The tree shows every level and marks where you are.
-  const tree = page.getByRole("navigation", { name: "Places" });
-  await expect(tree.getByRole("link")).toHaveCount(5);
-  await expect(tree.getByRole("link", { name: /The Drowned Bell/ })).toHaveAttribute("aria-current", "page");
-  await tree.getByRole("link", { name: /Larkwater/ }).click();
-  await expect(page.getByRole("heading", { name: "Larkwater", level: 1 })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Bell Quarter" }).first()).toBeVisible();
+  // The tree opens the path to the current page and can be collapsed and expanded.
+  const tree = page.getByRole("navigation", { name: "Campaign pages" });
+  await expect(tree.getByRole("link")).toHaveText(["Faerûn", "The Grey Marches", "Vellumis", "The Underbelly", "Community Kitchen"]);
+  await expect(tree.getByRole("link", { name: "Community Kitchen" })).toHaveAttribute("aria-current", "page");
+  await tree.getByRole("button", { name: "Collapse Faerûn" }).click();
+  await expect(tree.getByRole("link")).toHaveText(["Faerûn1"]); // closed branches show their child count
+  await tree.getByRole("button", { name: "Expand Faerûn" }).click();
+  await expect(tree.getByRole("link", { name: "The Grey Marches" })).toBeVisible();
+
+  // The parent lists what it contains, automatically.
+  await crumbs.getByRole("link", { name: "The Underbelly" }).click();
+  await expect(page.getByRole("heading", { name: "Points of interest" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "Community Kitchen" }).first()).toBeVisible();
+});
+
+test("a page shows its layout: lead, read-aloud, groups, GM group, not-written lines and infobox", async ({ page }) => {
+  await vellumis(page, "Layout test");
+  // Nothing written yet: every group is one quiet line, and nothing looks like an empty box.
+  await expect(page.getByText("not written yet: Demographics, Government, Culture and customs, Religion, Factions and guilds")).toBeVisible();
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Edit" }).click();
+  await page.getByLabel("Lead").fill("A city of ledgers and bells.");
+  await page.getByLabel("Population", { exact: true }).fill("12,000");
+  await page.getByLabel("First impression").fill("Fog, bells, and clerks hurrying with ink-stained hands.");
+  await page.getByLabel("Religion").fill("The Ledger God is worshipped in counting-houses.");
+  await page.getByLabel("Secrets").fill("The guild forges the census.");
+  await page.getByRole("button", { name: "Save" }).click();
+
+  await expect(page.getByText("A city of ledgers and bells.")).toBeVisible();
+  await expect(page.getByText("Read aloud")).toBeVisible();
+  await expect(page.getByText("Fog, bells, and clerks hurrying with ink-stained hands.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Religion" })).toBeVisible();
+  await expect(page.getByText("Not written yet: Demographics, Government, Culture and customs, Factions and guilds")).toBeVisible();
+  await expect(page.getByText("not written yet: Industry and trade, Infrastructure")).toBeVisible(); // Economy is empty
+  await expect(page.getByText("GM only")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Secrets" })).toBeVisible();
+  const infobox = page.getByRole("complementary", { name: "Infobox" });
+  await expect(infobox).toContainText("Population");
+  await expect(infobox).toContainText("12,000");
+  await expect(infobox.getByRole("link", { name: "The Grey Marches" })).toBeVisible();
+  await expect(infobox).toContainText("Empty: Type, Governance, Economy, Defence");
 });
 
 test("edit a page, read an older version and restore it", async ({ page }) => {
-  await newCampaign(page, "History test");
-  await page.getByRole("link", { name: "Add the first place" }).click();
-  await addPlace(page, "Settlement", "Stonebridge");
-  await expect(page.getByText("Nothing written yet.")).toBeVisible();
-
-  await page.getByRole("link", { name: "Edit page" }).click();
-  await page.getByLabel("First impression").fill("Mist over a broken bridge.");
-  await page.getByRole("button", { name: "Save page" }).click();
-  await expect(page.getByRole("heading", { name: "First impression" })).toBeVisible();
+  await vellumis(page, "History test");
+  await page.getByRole("link", { name: "Edit" }).click();
+  await page.getByLabel("Description").fill("Mist over a broken bridge.");
+  await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Mist over a broken bridge.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Tensions" })).toHaveCount(0); // empty sections stay hidden
 
-  await page.getByRole("link", { name: "Edit page" }).click();
-  await page.getByLabel("Name").fill("Stonebridge Crossing");
-  await page.getByLabel("First impression").fill("A new bridge, built too fast.");
-  await page.getByRole("button", { name: "Save page" }).click();
-  await expect(page.getByRole("heading", { name: "Stonebridge Crossing", level: 1 })).toBeVisible();
+  await page.getByRole("link", { name: "Edit" }).click();
+  await page.getByLabel("Title").fill("Vellumis-on-the-Marsh");
+  await page.getByLabel("Description").fill("A new bridge, built too fast.");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("heading", { name: "Vellumis-on-the-Marsh", level: 1 })).toBeVisible();
   await expect(page.getByText("Version 3")).toBeVisible();
 
   await page.getByRole("link", { name: "History" }).click();
   const versions = page.getByRole("list", { name: "Versions" }).getByRole("listitem");
   await expect(versions).toHaveCount(3);
-  await expect(versions.nth(0)).toContainText("Name, First impression");
+  await expect(versions.nth(0)).toContainText("Title, Description");
   await expect(versions.nth(2)).toContainText("Created");
   await page.getByRole("link", { name: "Version 2" }).click();
   await expect(page.getByText("Mist over a broken bridge.")).toBeVisible();
   await page.getByRole("button", { name: "Restore this version" }).click();
 
-  await expect(page.getByRole("heading", { name: "Stonebridge", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vellumis", level: 1 })).toBeVisible();
   await expect(page.getByText("Mist over a broken bridge.")).toBeVisible();
   await expect(page.getByText("Version 4")).toBeVisible();
 });
 
+test("move a page by changing its Parent; only allowed parents are offered", async ({ page }) => {
+  await vellumis(page, "Move test");
+  await page.getByRole("link", { name: "Faerûn" }).first().click();
+  await addInside(page, "Faerûn", "Region", "The Vale of Thren");
+  const tree = page.getByRole("navigation", { name: "Campaign pages" });
+  await tree.getByRole("button", { name: "Expand The Grey Marches" }).click();
+  await tree.getByRole("link", { name: "Vellumis" }).click();
+  await page.getByRole("link", { name: "Edit" }).click();
+  const parent = page.getByLabel("Parent");
+  await expect(parent.getByRole("option")).toHaveText(["The Grey Marches · Region", "The Vale of Thren · Region"]); // no World: a Settlement sits under a Region
+  await parent.selectOption({ label: "The Vale of Thren · Region" });
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link")).toHaveText(["Wiki", "Faerûn", "The Vale of Thren"]);
+});
+
 test("a save from an out-of-date editor never overwrites newer text", async ({ page, context }) => {
-  await newCampaign(page, "Conflict test");
-  await page.getByRole("link", { name: "Add the first place" }).click();
-  await addPlace(page, "Region", "The Fens");
-  await page.getByRole("link", { name: "Edit page" }).click();
+  await vellumis(page, "Conflict test");
+  await page.getByRole("link", { name: "Edit" }).click();
 
   const other = await context.newPage();
   await other.goto(page.url());
-  await other.getByLabel("Character").fill("Saved first.");
-  await other.getByRole("button", { name: "Save page" }).click();
+  await other.getByLabel("Description").fill("Saved first.");
+  await other.getByRole("button", { name: "Save" }).click();
   await expect(other.getByText("Saved first.")).toBeVisible();
 
-  await page.getByLabel("Character").fill("Typed in the older tab.");
-  await page.getByRole("button", { name: "Save page" }).click();
+  await page.getByLabel("Description").fill("Typed in the older tab.");
+  await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Nothing was overwritten" })).toBeVisible();
-  await expect(page.getByLabel("Character")).toHaveValue("Typed in the older tab.");
+  await expect(page.getByLabel("Description")).toHaveValue("Typed in the older tab.");
   await page.goto(page.url().replace(/\/edit$/, ""));
   await expect(page.getByText("Saved first.")).toBeVisible();
 });
 
-test("a place needs a name", async ({ page }) => {
+test("a page needs a title", async ({ page }) => {
   await newCampaign(page, "Validation test");
-  await page.getByRole("link", { name: "Add the first place" }).click();
-  await page.getByLabel("Summary").fill("Kept after the error.");
-  await page.getByRole("button", { name: "Create place" }).click();
-  await expect(page.getByText("Give the page a name.")).toBeVisible();
-  await expect(page.getByLabel("Summary")).toHaveValue("Kept after the error.");
+  await page.getByRole("link", { name: "Add the world" }).click();
+  await page.getByLabel("Lead").fill("Kept after the error.");
+  await page.getByRole("button", { name: "Create page" }).click();
+  await expect(page.getByText("Give the page a title.")).toBeVisible();
+  await expect(page.getByLabel("Lead")).toHaveValue("Kept after the error.");
 });

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { getPlace, listPlaces } from "@/lib/dal";
-import { PLACE_TYPES } from "@/lib/reference";
+import { getPlace, listPlaces, validParents } from "@/lib/dal";
+import { PLACE_TYPES, infoFields, writtenFields } from "@/lib/reference";
 import { ancestors } from "@/lib/tree";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { savePlace } from "../../actions";
@@ -15,17 +15,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { id, placeId } = await params;
-  const [p, places] = await Promise.all([getPlace(id, placeId), listPlaces(id)]);
+  const [p, places, parents] = await Promise.all([getPlace(id, placeId), listPlaces(id), validParents(id, placeId)]);
   const base = `/c/${id}/wiki`;
+  const T = PLACE_TYPES[p.type];
+  const label = (x: { title: string; type: keyof typeof PLACE_TYPES }) => `${x.title} · ${PLACE_TYPES[x.type].label}`;
+  // A page placed before the nesting rules were fixed keeps its current parent until the GM picks a valid one.
+  const current = places.find((x) => x.id === p.parentId);
+  const parentOptions = [
+    ...(current && !parents.some((x) => x.id === current.id) ? [{ id: current.id, label: `${label(current)} (current, not an allowed parent)` }] : []),
+    ...parents.map((x) => ({ id: x.id, label: label(x) })),
+  ];
   return (
     <section aria-labelledby="edit-h">
       <Breadcrumbs base={base} path={[...ancestors(places, p.id), { id: p.id, title: p.current.title }]} current="Edit" />
-      <h1 id="edit-h" className="display">Edit {p.current.title}</h1>
-      <p className="muted">Write only what helps you run the game. Empty sections don&apos;t show on the page.</p>
+      <p className="eyebrow">Editing directly · {T.label} layout</p>
+      <h1 id="edit-h" className="display">{p.current.title}</h1>
+      <p className="notice">You are the GM, so direct edits become canon when you save.</p>
       <EditPlaceForm
         action={savePlace.bind(null, id, p.id, p.current.number)}
-        sections={PLACE_TYPES[p.type].sections}
         initial={p.current}
+        parent={T.parents.length > 0 ? {
+          current: p.parentId ?? "",
+          options: parentOptions,
+          hint: `A ${T.label.toLowerCase()} can sit under: ${T.parents.map((t) => PLACE_TYPES[t].label).join(", ")}`,
+        } : null}
+        info={infoFields(p.type)}
+        sections={writtenFields(p.type)}
         cancelHref={`${base}/${p.id}`}
       />
     </section>

@@ -1,0 +1,1 @@
+ALTER TABLE "entry_revision" DROP COLUMN "summary";

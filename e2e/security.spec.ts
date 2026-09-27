@@ -30,9 +30,9 @@ test("another GM can't read, edit or add to your places, even with their exact a
   await signIn(a);
   await a.getByLabel("Name").fill("Secret atlas");
   await a.getByRole("button", { name: "Create campaign" }).click();
-  await a.getByRole("link", { name: "Add the first place" }).click();
-  await a.getByLabel("Name").fill("Hidden Keep");
-  await a.getByRole("button", { name: "Create place" }).click();
+  await a.getByRole("link", { name: "Add the world" }).click();
+  await a.getByLabel("Title").fill("Hidden Keep");
+  await a.getByRole("button", { name: "Create page" }).click();
   await expect(a.getByRole("heading", { name: "Hidden Keep", level: 1 })).toBeVisible();
   const place = a.url();
   const [campaignA, placeId] = place.match(/\/c\/([0-9a-f-]{36})\/wiki\/([0-9a-f-]{36})$/)!.slice(1);
@@ -58,9 +58,9 @@ test("a place from one campaign can't be opened through another campaign's addre
   await signIn(page);
   await page.getByLabel("Name").fill("First realm");
   await page.getByRole("button", { name: "Create campaign" }).click();
-  await page.getByRole("link", { name: "Add the first place" }).click();
-  await page.getByLabel("Name").fill("Border Fort");
-  await page.getByRole("button", { name: "Create place" }).click();
+  await page.getByRole("link", { name: "Add the world" }).click();
+  await page.getByLabel("Title").fill("Border Fort");
+  await page.getByRole("button", { name: "Create page" }).click();
   await expect(page.getByRole("heading", { name: "Border Fort", level: 1 })).toBeVisible();
   const placeId = page.url().split("/").at(-1);
 
@@ -70,4 +70,33 @@ test("a place from one campaign can't be opened through another campaign's addre
   await expect(page).toHaveURL(/\/wiki$/);
   const second = page.url();
   for (const path of [`/${placeId}`, `/new?parent=${placeId}`]) expect((await page.goto(second + path))?.status()).toBe(404);
+});
+
+test("a forged Parent can't move a page into another campaign", async ({ page }) => {
+  await signIn(page);
+  await page.getByLabel("Name").fill("Realm one");
+  await page.getByRole("button", { name: "Create campaign" }).click();
+  await page.getByRole("link", { name: "Add the world" }).click();
+  await page.getByLabel("Title").fill("Foreign World");
+  await page.getByRole("button", { name: "Create page" }).click();
+  await expect(page.getByRole("heading", { name: "Foreign World", level: 1 })).toBeVisible();
+  const foreignId = page.url().split("/").at(-1)!;
+
+  await page.goto("/");
+  await page.getByLabel("Name").fill("Realm two");
+  await page.getByRole("button", { name: "Create campaign" }).click();
+  await page.getByRole("link", { name: "Add the world" }).click();
+  await page.getByLabel("Title").fill("Home World");
+  await page.getByRole("button", { name: "Create page" }).click();
+  await page.getByRole("link", { name: "Add a place inside Home World" }).click();
+  await page.getByLabel("Title").fill("Home Region");
+  await page.getByRole("button", { name: "Create page" }).click();
+  await page.getByRole("link", { name: "Edit" }).click();
+
+  // Tamper with the form the way an attacker would: point Parent at a page in another campaign.
+  await page.getByLabel("Parent").evaluate((el, id) => { (el as HTMLSelectElement).options[0].value = id; }, foreignId);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "can't go there" })).toBeVisible();
+  await page.goto(page.url().replace(/\/edit$/, ""));
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link")).toHaveText(["Wiki", "Home World"]);
 });

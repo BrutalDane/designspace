@@ -16,7 +16,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   return (
     <section aria-labelledby="new-h" className="stack narrow-form">
       <h1 id="new-h" className="display">New place</h1>
-      <p className="muted">{parent ? <>Inside <strong>{parent.current.title}</strong>.</> : "At the top of the Wiki."}</p>
+      <p className="muted">Where it goes: {parent ? <strong>{parent.current.title}</strong> : "the top of the Wiki"}.</p>
       <NewPlaceForm action={createPlace.bind(null, id, parent?.id ?? null)} kinds={kinds} cancelHref={parent ? `/c/${id}/wiki/${parent.id}` : `/c/${id}/wiki`} />
     </section>
   );

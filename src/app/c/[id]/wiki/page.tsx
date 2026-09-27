@@ -15,13 +15,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       <h1 id="ws-h" className="display">Wiki</h1>
       {places.length === 0 ? (
         <>
-          <p className="lead">The campaign atlas. Start with the place your campaign happens in: a whole world, a region, or a single town.</p>
-          <p><Link className="btn primary" href={`/c/${id}/wiki/new`}>Add the first place</Link></p>
+          <p className="lead">The campaign atlas. Start with the world or plane the campaign lives in.</p>
+          <p><Link className="btn primary" href={`/c/${id}/wiki/new`}>Add the world</Link></p>
         </>
       ) : (
         <>
-          <p className="lead">Pick a place from the tree, or add a new place at the top level.</p>
-          <p><Link className="btn" href={`/c/${id}/wiki/new`}>Add a top-level place</Link></p>
+          <p className="lead">Pick a page from the tree.</p>
+          <p><Link className="btn" href={`/c/${id}/wiki/new`}>Add a world or plane</Link></p>
         </>
       )}
     </section>

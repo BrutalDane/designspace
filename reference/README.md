@@ -21,6 +21,7 @@ unless DECISIONS.md records that Thor agreed to the change.
 5. These are copies. If Thor changes a decision in the claude.ai Project, the copy here is updated in the same session.
 
 ## Known drift to fix (found 2026-09-27, in branch `m1/places`, M1 slice 1)
+**Fixed 2026-09-27 on `m1/places`** (all points below; Dungeon level deferred as allowed). Kept here as a record.
 Slice 1 was built from its own section lists instead of the reference. Before `m1/places` is merged:
 - **Section sets:** `src/lib/reference.ts` uses invented sections (e.g. World "What it feels like", Region "Character",
   Settlement "Services", Site "Consequences"). Replace them with the groups and sections in `wiki-page-design.md`

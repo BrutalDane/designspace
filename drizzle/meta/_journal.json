@@ -15,6 +15,20 @@
       "when": 1790515751722,
       "tag": "0001_wiki_places",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790518046024,
+      "tag": "0002_place_lead_and_info",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790518063098,
+      "tag": "0003_drop_place_summary",
+      "breakpoints": true
     }
   ]
 }

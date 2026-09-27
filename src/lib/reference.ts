@@ -12,75 +12,95 @@ export const WORKSPACES = [
   { slug: "sessions", label: "Sessions" },
 ] as const;
 
-/* ---------- Wiki: places ---------- */
-export type Section = { key: string; heading: string; hint: string };
-export type PlaceType = "world" | "region" | "settlement" | "district" | "site";
-
-/**
- * Each kind of place has its own page layout. Sections are prompts, not required fields:
- * empty ones stay hidden on the page. `parents` lists what a place can sit inside (null = top of the tree).
+/* ---------- Wiki: place types ----------
+ * Copied from the decided reference (reference/wiki-page-design.md, from prototype-v6-types.js). Do not add or rename
+ * sections, info fields or parents here without Thor's decision. Keys in CAPITALS are lists the app builds itself.
+ * Dungeon level is decided but follows in a later slice (it needs keyed areas).
  */
-export const PLACE_TYPES: Record<PlaceType, { label: string; hint: string; parents: (PlaceType | null)[]; sections: Section[] }> = {
+export type PlaceType = "world" | "region" | "settlement" | "district" | "building" | "site" | "dungeon";
+export type Field = { key: string; label: string };
+export type Group = { name: string; fields: Field[]; gm: boolean };
+export type PlaceTypeDef = { label: string; parents: PlaceType[]; kids: string; info: string[]; groups: Group[] };
+
+/** Lists the app builds itself; never typed by hand and never listed as "not written yet". */
+export const AUTO = ["CHILDREN", "PEOPLE", "AREAS"] as const;
+export const isAuto = (key: string) => (AUTO as readonly string[]).includes(key);
+
+const G = (name: string, fields: [string, string][], gm = false): Group => ({ name, fields: fields.map(([key, label]) => ({ key, label })), gm });
+
+export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
   world: {
-    label: "World", hint: "The whole setting: a world, plane or continent.", parents: [null],
-    sections: [
-      { key: "feel", heading: "What it feels like", hint: "The tone and texture of the setting in a few lines." },
-      { key: "powers", heading: "Gods and powers", hint: "Who or what holds power over the world, seen and unseen." },
-      { key: "history", heading: "Ages and history", hint: "The eras that shaped it and what people remember of them." },
-      { key: "peoples", heading: "Peoples and cultures", hint: "Who lives here and how they see each other." },
-      { key: "changing", heading: "What is changing", hint: "The forces in motion as the campaign begins." },
+    label: "World / Plane", parents: [], kids: "Regions", info: ["Type", "Parent"],
+    groups: [
+      G("Overview", [["description", "Description"], ["cosmology", "Cosmology"], ["history", "History"]]),
+      G("Places", [["CHILDREN", "Regions"]]),
+      G("At the table", [["campaign", "In this campaign"], ["secrets", "Secrets"]], true),
     ],
   },
   region: {
-    label: "Region", hint: "A land, province, wilderness or sea.", parents: [null, "world", "region"],
-    sections: [
-      { key: "character", heading: "Character", hint: "Landscape, climate and how it feels to travel here." },
-      { key: "routes", heading: "Routes and travel", hint: "Roads, rivers, borders and how long journeys take." },
-      { key: "communities", heading: "Communities", hint: "Who lives here, and where." },
-      { key: "history", heading: "History and myths", hint: "What happened here and what people believe happened." },
-      { key: "pressures", heading: "Active pressures", hint: "Conflicts, threats and changes under way." },
-      { key: "hooks", heading: "Hooks for play", hint: "What could draw the party here or keep them here." },
+    label: "Region", parents: ["world", "region"], kids: "Places", info: ["Type", "Parent", "Terrain", "Climate", "Authority", "Population", "Danger"],
+    groups: [
+      G("Overview", [["description", "Description"], ["history", "History"]]),
+      G("The land", [["geography", "Geography"], ["climate", "Climate and seasons"], ["flora", "Fauna and flora"], ["phenomena", "Local phenomena"], ["resources", "Natural resources"]]),
+      G("People and powers", [["peoples", "Peoples and cultures"], ["power", "Who holds power"], ["CHILDREN", "Settlements and sites"], ["PEOPLE", "People here"]]),
+      G("Travel", [["routes", "Roads and routes"], ["hazards", "Hazards"]]),
+      G("At the table", [["impression", "First impression"], ["now", "What is happening now"], ["pressures", "Creature pressures"], ["rumours", "Rumours"], ["hooks", "Hooks"], ["secrets", "Secrets"], ["ignored", "If the party does nothing"]], true),
     ],
   },
   settlement: {
-    label: "Settlement", hint: "A city, town, village or outpost.", parents: [null, "world", "region"],
-    sections: [
-      { key: "impression", heading: "First impression", hint: "What travellers see, hear and smell as they arrive." },
-      { key: "landmarks", heading: "Districts and landmarks", hint: "How the place is laid out and what stands out." },
-      { key: "people", heading: "People and groups", hint: "Who runs it, who works it, who is left out." },
-      { key: "customs", heading: "Customs and laws", hint: "Faiths, festivals, rules and what gets you in trouble." },
-      { key: "tensions", heading: "Tensions", hint: "Rivalries, shortages and quarrels simmering under the surface." },
-      { key: "services", heading: "Services", hint: "Where to sleep, eat, trade, heal and learn." },
-      { key: "secrets", heading: "Secrets", hint: "What the locals hide, and from whom." },
-      { key: "now", heading: "Current developments", hint: "What is happening here right now." },
+    label: "Settlement", parents: ["region"], kids: "Districts and places", info: ["Type", "Parent", "Population", "Governance", "Economy", "Defence"],
+    groups: [
+      G("Overview", [["description", "Description"], ["history", "History"]]),
+      G("Society", [["demographics", "Demographics"], ["government", "Government"], ["culture", "Culture and customs"], ["religion", "Religion"], ["factions", "Factions and guilds"]]),
+      G("Economy", [["industry", "Industry and trade"], ["infrastructure", "Infrastructure"]]),
+      G("Places", [["districts", "Districts"], ["CHILDREN", "Districts and points of interest"], ["architecture", "Architecture"], ["surroundings", "Surroundings"]]),
+      G("Defence", [["defences", "Defences"]]),
+      G("At the table", [["impression", "First impression"], ["now", "Current situation"], ["PEOPLE", "Notable people here"], ["rumours", "Rumours"], ["hooks", "Hooks"], ["secrets", "Secrets"], ["ignored", "If the party does nothing"]], true),
     ],
   },
   district: {
-    label: "District", hint: "A quarter, ward or neighbourhood of a settlement.", parents: ["settlement"],
-    sections: [
-      { key: "character", heading: "Character", hint: "Streets, sounds and the kind of people you meet." },
-      { key: "places", heading: "Places to visit", hint: "Shops, taverns, temples and landmarks worth a scene." },
-      { key: "people", heading: "Who holds sway", hint: "Bosses, guilds, families and watchers." },
-      { key: "tensions", heading: "Tensions", hint: "What could spark trouble here." },
-      { key: "secrets", heading: "Secrets", hint: "What is hidden behind the doors." },
+    label: "District", parents: ["settlement"], kids: "Places", info: ["Type", "Parent", "Population", "Watch"],
+    groups: [
+      G("Overview", [["description", "Description"], ["character", "Character"], ["history", "History"]]),
+      G("Life here", [["residents", "Who lives here"], ["factions", "Factions and networks"], ["CHILDREN", "Points of interest"]]),
+      G("At the table", [["impression", "First impression"], ["now", "Current pressure"], ["PEOPLE", "Notable people here"], ["rumours", "Rumours"], ["hooks", "Hooks"], ["secrets", "Secrets"]], true),
+    ],
+  },
+  building: {
+    label: "Building / Landmark", parents: ["district", "settlement", "region"], kids: "Parts", info: ["Type", "Parent", "Owner", "Built"],
+    groups: [
+      G("Overview", [["description", "Description"], ["purpose", "Purpose"], ["history", "History"]]),
+      G("Design", [["architecture", "Design and architecture"], ["layout", "Layout and rooms"], ["entries", "Entries and exits"], ["sensory", "Sensory details"]]),
+      G("At the table", [["impression", "First impression"], ["PEOPLE", "Who is here"], ["rumours", "Rumours"], ["hooks", "Hooks"], ["secrets", "Secrets"], ["ignored", "If the party does nothing"]], true),
     ],
   },
   site: {
-    label: "Site", hint: "A building, ruin, dungeon or landmark.", parents: ["world", "region", "settlement", "district"],
-    sections: [
-      { key: "premise", heading: "Premise", hint: "What this place is, who made it, and why it matters now." },
-      { key: "approach", heading: "Approach and entrances", hint: "How the party finds it and gets in." },
-      { key: "atmosphere", heading: "Atmosphere", hint: "Light, sound, smell and mood." },
-      { key: "inhabitants", heading: "Inhabitants", hint: "Who or what is here, and what they want." },
-      { key: "discoveries", heading: "Discoveries and clues", hint: "What can be learned or found." },
-      { key: "hazards", heading: "Hazards and obstacles", hint: "Traps, locks, guards and other ways in or around." },
-      { key: "consequences", heading: "Consequences", hint: "How the place reacts to intruders and what changes after." },
-      { key: "table", heading: "At the table", hint: "Quick reference for running it: read-aloud lines, DCs, reminders." },
+    label: "Site", parents: ["region", "settlement", "district"], kids: "Places", info: ["Type", "Parent", "Controlled by"],
+    groups: [
+      G("Overview", [["description", "Description"], ["history", "History"]]),
+      G("The place", [["layout", "Layout"], ["sensory", "Sensory details"], ["inhabitants", "Inhabitants"]]),
+      G("At the table", [["impression", "First impression"], ["do", "What players can do"], ["nav", "Getting there"], ["PEOPLE", "Who is here"], ["hooks", "Hooks"], ["secrets", "Secrets"], ["ignored", "If the party does nothing"]], true),
+    ],
+  },
+  dungeon: {
+    label: "Dungeon", parents: ["region", "settlement", "district"], kids: "Levels", info: ["Type", "Parent", "Controlled by", "Threat", "Level range"],
+    groups: [
+      G("Overview", [["premise", "Premise"], ["history", "History"]]),
+      G("Structure", [["approach", "Approach"], ["logic", "Spatial logic"], ["CHILDREN", "Levels"], ["sensory", "Sensory details"]]),
+      G("Occupants", [["inhabitants", "Inhabitants"], ["factions", "Factions inside"], ["PEOPLE", "Named people here"]]),
+      G("At the table", [["impression", "First impression"], ["discoveries", "Discoveries"], ["hazards", "Hazards and tension"], ["treasure", "Treasure"], ["ignored", "If the party does nothing"]], true),
     ],
   },
 };
 
+/** Image slot label in the infobox, per type (from the prototype). */
+export const INFOBOX_IMAGE: Partial<Record<PlaceType, string>> = { region: "Map", settlement: "Map", building: "Illustration", site: "Map", dungeon: "Map" };
+
 export const isPlaceType = (t: string): t is PlaceType => Object.hasOwn(PLACE_TYPES, t);
-/** Which kinds of place may go inside a parent of the given kind (null = the top of the Wiki). */
+/** The typed sections of a type, in page order (automatic lists left out). */
+export const writtenFields = (t: PlaceType) => PLACE_TYPES[t].groups.flatMap((g) => g.fields).filter((f) => !isAuto(f.key));
+/** Infobox fields the GM types. "Parent" is the page's place in the tree, not a typed field. */
+export const infoFields = (t: PlaceType) => PLACE_TYPES[t].info.filter((k) => k !== "Parent");
+/** Which types may go inside a parent of the given type (null = the top of the Wiki: types with no allowed parents). */
 export const childTypes = (parent: PlaceType | null): PlaceType[] =>
-  (Object.keys(PLACE_TYPES) as PlaceType[]).filter((t) => PLACE_TYPES[t].parents.includes(parent));
+  (Object.keys(PLACE_TYPES) as PlaceType[]).filter((t) => (parent ? PLACE_TYPES[t].parents.includes(parent) : PLACE_TYPES[t].parents.length === 0));

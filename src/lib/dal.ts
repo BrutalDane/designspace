@@ -5,7 +5,8 @@ import { redirect, notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db, schema } from "@/db";
-import { childTypes, type PlaceType } from "@/lib/reference";
+import { childTypes, PLACE_TYPES, type PlaceType } from "@/lib/reference";
+import { ancestors } from "@/lib/tree";
 import type { NewPlaceInput, PageContent } from "@/lib/validation";
 
 /**
@@ -43,13 +44,13 @@ export async function insertCampaign(input: { name: string; setting: string; rul
 }
 
 /* ---------- Wiki: places ---------- */
-export type PlaceSummary = { id: string; parentId: string | null; type: PlaceType; title: string };
+export type PlaceSummary = { id: string; parentId: string | null; type: PlaceType; title: string; lead: string };
 
-/** Every place in the campaign with its current name (taken from its newest version). */
+/** Every place in the campaign with its current title and lead (taken from its newest version). */
 export const listPlaces = cache(async (campaignId: string): Promise<PlaceSummary[]> => {
   const c = await getCampaign(campaignId);
   const { entry, entryRevision } = schema;
-  const rows = await db.selectDistinctOn([entryRevision.entryId], { id: entry.id, parentId: entry.parentId, type: entry.type, title: entryRevision.title })
+  const rows = await db.selectDistinctOn([entryRevision.entryId], { id: entry.id, parentId: entry.parentId, type: entry.type, title: entryRevision.title, lead: entryRevision.lead })
     .from(entry).innerJoin(entryRevision, eq(entryRevision.entryId, entry.id))
     .where(eq(entry.campaignId, c.id))
     .orderBy(entryRevision.entryId, desc(entryRevision.number));
@@ -84,6 +85,12 @@ export async function getVersion(campaignId: string, placeId: string, number: nu
   return v;
 }
 
+/** Places a page may move under: allowed parent types only, never itself or anything inside it. */
+export async function validParents(campaignId: string, placeId: string) {
+  const [p, places] = await Promise.all([getPlace(campaignId, placeId), listPlaces(campaignId)]);
+  return places.filter((x) => PLACE_TYPES[p.type].parents.includes(x.type) && x.id !== p.id && !ancestors(places, x.id).some((a) => a.id === p.id));
+}
+
 /** Creates a place inside `parentId` (or at the top of the Wiki) together with its first version. */
 export async function insertPlace(campaignId: string, parentId: string | null, input: NewPlaceInput): Promise<{ id: string } | { error: string }> {
   const gm = await requireGM();
@@ -92,14 +99,14 @@ export async function insertPlace(campaignId: string, parentId: string | null, i
   if (!childTypes(parent?.type ?? null).includes(input.type)) return { error: "That kind of place can't go here." };
   return db.transaction(async (tx) => {
     const [e] = await tx.insert(schema.entry).values({ campaignId: c.id, parentId: parent?.id ?? null, type: input.type }).returning();
-    await tx.insert(schema.entryRevision).values({ entryId: e.id, number: 1, title: input.title, summary: input.summary, sections: {}, authorId: gm.id });
+    await tx.insert(schema.entryRevision).values({ entryId: e.id, number: 1, title: input.title, lead: input.lead, info: {}, sections: {}, authorId: gm.id });
     return { id: e.id };
   });
 }
 
+const sorted = (r: Record<string, string>) => JSON.stringify(Object.entries(r).sort());
 const sameContent = (a: PageContent, b: PageContent) =>
-  a.title === b.title && a.summary === b.summary &&
-  JSON.stringify(Object.entries(a.sections).sort()) === JSON.stringify(Object.entries(b.sections).sort());
+  a.title === b.title && a.lead === b.lead && sorted(a.info) === sorted(b.info) && sorted(a.sections) === sorted(b.sections);
 
 const isUniqueViolation = (e: unknown) => {
   const err = e as { code?: string; cause?: { code?: string } } | undefined;
@@ -107,16 +114,28 @@ const isUniqueViolation = (e: unknown) => {
 };
 
 /**
- * Saves a new version of a place. `basedOn` is the version the GM started editing from. If another
- * save happened in between (a second tab), nothing is overwritten and the caller gets the newer number.
+ * Saves a new version of a place and, if `parentId` changed, moves it in the tree. `basedOn` is the version the GM
+ * started editing from; if another save happened in between (a second tab), nothing is changed and the caller gets
+ * the newer number. The Parent is where the page sits, not page text, so a move is not a new version.
  */
-export async function savePlaceVersion(campaignId: string, placeId: string, basedOn: number, content: PageContent): Promise<{ saved: boolean } | { conflict: number }> {
+export async function savePlace(campaignId: string, placeId: string, basedOn: number, content: PageContent, parentId: string | null):
+  Promise<{ saved: boolean } | { conflict: number } | { error: string }> {
   const gm = await requireGM();
   const p = await getPlace(campaignId, placeId);
   if (p.current.number !== basedOn) return { conflict: p.current.number };
-  if (sameContent(p.current, content)) return { saved: false };
+  const moving = parentId !== p.parentId;
+  if (moving) {
+    if (parentId === null ? PLACE_TYPES[p.type].parents.length > 0 : !(await validParents(campaignId, placeId)).some((x) => x.id === parentId)) {
+      return { error: `A ${PLACE_TYPES[p.type].label.toLowerCase()} can't go there.` };
+    }
+  }
+  const newVersion = !sameContent(p.current, content);
+  if (!moving && !newVersion) return { saved: false };
   try {
-    await db.insert(schema.entryRevision).values({ entryId: p.id, number: basedOn + 1, ...content, authorId: gm.id });
+    await db.transaction(async (tx) => {
+      if (moving) await tx.update(schema.entry).set({ parentId }).where(eq(schema.entry.id, p.id));
+      if (newVersion) await tx.insert(schema.entryRevision).values({ entryId: p.id, number: basedOn + 1, ...content, authorId: gm.id });
+    });
   } catch (e) {
     if (isUniqueViolation(e)) return { conflict: basedOn + 1 };
     throw e;
@@ -128,5 +147,5 @@ export async function savePlaceVersion(campaignId: string, placeId: string, base
 export async function restorePlaceVersion(campaignId: string, placeId: string, number: number) {
   const p = await getPlace(campaignId, placeId);
   const v = await getVersion(campaignId, placeId, number);
-  return savePlaceVersion(campaignId, placeId, p.current.number, { title: v.title, summary: v.summary, sections: v.sections });
+  return savePlace(campaignId, placeId, p.current.number, { title: v.title, lead: v.lead, info: v.info, sections: v.sections }, p.parentId);
 }

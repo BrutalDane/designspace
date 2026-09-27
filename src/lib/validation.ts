@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { RULESETS, CALENDARS, PLACE_TYPES, type PlaceType } from "@/lib/reference";
+import { RULESETS, CALENDARS, PLACE_TYPES, infoFields, writtenFields, type PlaceType } from "@/lib/reference";
 
 export const CampaignInput = z.object({
   name: z.string().trim().min(2, { error: "Give the campaign a name of at least 2 characters." }).max(80, { error: "Keep the name under 80 characters." }),
@@ -14,24 +14,31 @@ export const SignInInput = z.object({
   password: z.string().min(1, { error: "Enter your password." }),
 });
 
-const title = z.string().trim().min(1, { error: "Give the page a name." }).max(120, { error: "Keep the name under 120 characters." });
-const summary = z.string().trim().max(2000, { error: "Keep the summary under 2,000 characters." });
+const title = z.string().trim().min(1, { error: "Give the page a title." }).max(120, { error: "Keep the title under 120 characters." });
+const lead = z.string().trim().max(2000, { error: "Keep the lead under 2,000 characters." });
 
 export const NewPlaceInput = z.object({
   type: z.enum(Object.keys(PLACE_TYPES) as [PlaceType, ...PlaceType[]], { error: "Pick what kind of place this is." }),
   title,
-  summary,
+  lead,
 });
 export type NewPlaceInput = z.infer<typeof NewPlaceInput>;
 
-export type PageContent = { title: string; summary: string; sections: Record<string, string> };
+export type PageContent = { title: string; lead: string; info: Record<string, string>; sections: Record<string, string> };
 
-/** Reads an edited page for the given kind of place. Only that layout's sections are kept, and empty ones are dropped. */
-export function parsePage(type: PlaceType, data: { title: unknown; summary: unknown; sections: Record<string, unknown> }) {
-  const sectionText = z.string().trim().max(20000, { error: "Keep each section under 20,000 characters." });
-  const shape = Object.fromEntries(PLACE_TYPES[type].sections.map((s) => [s.key, sectionText.default("")]));
-  return z.object({ title, summary: summary.default(""), sections: z.object(shape) })
-    .transform((p): PageContent => ({ ...p, sections: Object.fromEntries(Object.entries(p.sections).filter(([, v]) => v !== "")) }))
+const dropEmpty = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== ""));
+
+/** Reads an edited page for the given type. Only that type's infobox fields and sections are kept; empty ones are dropped. */
+export function parsePage(type: PlaceType, data: { title: unknown; lead: unknown; info: Record<string, unknown>; sections: Record<string, unknown> }) {
+  const short = z.string().trim().max(200, { error: "Keep infobox values under 200 characters." }).default("");
+  const long = z.string().trim().max(20000, { error: "Keep each section under 20,000 characters." }).default("");
+  return z.object({
+    title,
+    lead: lead.default(""),
+    info: z.object(Object.fromEntries(infoFields(type).map((k) => [k, short]))),
+    sections: z.object(Object.fromEntries(writtenFields(type).map((f) => [f.key, long]))),
+  })
+    .transform((p): PageContent => ({ title: p.title, lead: p.lead, info: dropEmpty(p.info), sections: dropEmpty(p.sections) }))
     .safeParse(data);
 }
 
@@ -39,8 +46,9 @@ export function parsePage(type: PlaceType, data: { title: unknown; summary: unkn
 export function changedParts(type: PlaceType, before: PageContent | undefined, after: PageContent): string[] {
   if (!before) return ["Created"];
   const parts: string[] = [];
-  if (before.title !== after.title) parts.push("Name");
-  if (before.summary !== after.summary) parts.push("Summary");
-  for (const s of PLACE_TYPES[type].sections) if ((before.sections[s.key] ?? "") !== (after.sections[s.key] ?? "")) parts.push(s.heading);
+  if (before.title !== after.title) parts.push("Title");
+  if (before.lead !== after.lead) parts.push("Lead");
+  for (const k of infoFields(type)) if ((before.info[k] ?? "") !== (after.info[k] ?? "")) parts.push(k);
+  for (const f of writtenFields(type)) if ((before.sections[f.key] ?? "") !== (after.sections[f.key] ?? "")) parts.push(f.label);
   return parts;
 }
