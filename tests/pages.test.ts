@@ -1,23 +1,28 @@
 import { describe, it, expect } from "vitest";
-import { childTypes, infoFields, PLACE_TYPES, writtenFields } from "../src/lib/reference";
+import { childTypes, infoFields, ENTRY_TYPES, writtenFields } from "../src/lib/reference";
 import { changedParts, parsePage } from "../src/lib/validation";
 import { ancestors, buildTree } from "../src/lib/tree";
 
-describe("place types follow reference/wiki-page-design.md", () => {
-  it("has the decided place types (Dungeon level follows in a later slice)", () => {
-    expect(Object.values(PLACE_TYPES).map((t) => t.label)).toEqual(["World / Plane", "Region", "Settlement", "District", "Building / Landmark", "Site", "Dungeon"]);
+describe("entry types follow reference/wiki-page-design.md", () => {
+  it("has the decided types built so far (the rest follow in slice 4)", () => {
+    expect(Object.values(ENTRY_TYPES).map((t) => t.label)).toEqual([
+      "World / Plane", "Region", "Settlement", "District", "Building / Landmark", "Site", "Dungeon",
+      "Faction", "NPC", "Player character", "Party", "Magic item",
+    ]);
   });
   it("uses the decided allowed parents", () => {
-    expect(PLACE_TYPES.world.parents).toEqual([]);
-    expect(PLACE_TYPES.region.parents).toEqual(["world", "region"]);
-    expect(PLACE_TYPES.settlement.parents).toEqual(["region"]);
-    expect(PLACE_TYPES.district.parents).toEqual(["settlement"]);
-    expect(PLACE_TYPES.building.parents).toEqual(["district", "settlement", "region"]);
-    expect(PLACE_TYPES.site.parents).toEqual(["region", "settlement", "district"]);
-    expect(PLACE_TYPES.dungeon.parents).toEqual(["region", "settlement", "district"]);
+    expect(ENTRY_TYPES.world.parents).toEqual([]);
+    expect(ENTRY_TYPES.region.parents).toEqual(["world", "region"]);
+    expect(ENTRY_TYPES.settlement.parents).toEqual(["region"]);
+    expect(ENTRY_TYPES.district.parents).toEqual(["settlement"]);
+    expect(ENTRY_TYPES.building.parents).toEqual(["district", "settlement", "region"]);
+    expect(ENTRY_TYPES.site.parents).toEqual(["region", "settlement", "district"]);
+    expect(ENTRY_TYPES.dungeon.parents).toEqual(["region", "settlement", "district"]);
   });
-  it("only a World / Plane sits at the top, and nothing undecided is offered", () => {
-    expect(childTypes(null)).toEqual(["world"]);
+  it("only a World / Plane starts the places; factions, people, party and items may sit at the top", () => {
+    expect(childTypes(null)).toEqual(["world", "faction", "npc", "pc", "party", "item"]);
+    expect(childTypes("faction")).toEqual(["faction"]);
+    expect(childTypes("npc")).toEqual([]);
     expect(childTypes("world")).toEqual(["region"]);
     expect(childTypes("region")).toEqual(["region", "settlement", "building", "site", "dungeon"]);
     expect(childTypes("settlement")).toEqual(["district", "building", "site", "dungeon"]);
@@ -25,11 +30,13 @@ describe("place types follow reference/wiki-page-design.md", () => {
     expect(childTypes("site")).toEqual([]);
   });
   it("uses the decided groups, with At the table as the GM group", () => {
-    expect(PLACE_TYPES.region.groups.map((g) => g.name)).toEqual(["Overview", "The land", "People and powers", "Travel", "At the table"]);
-    expect(PLACE_TYPES.settlement.groups.map((g) => g.name)).toEqual(["Overview", "Society", "Economy", "Places", "Defence", "At the table"]);
-    for (const t of Object.values(PLACE_TYPES)) {
-      expect(t.groups.filter((g) => g.gm).map((g) => g.name)).toEqual(["At the table"]);
-      const keys = t.groups.flatMap((g) => g.fields.map((f) => f.key));
+    expect(ENTRY_TYPES.region.groups.map((g) => g.name)).toEqual(["Overview", "The land", "People and powers", "Travel", "At the table"]);
+    expect(ENTRY_TYPES.settlement.groups.map((g) => g.name)).toEqual(["Overview", "Society", "Economy", "Places", "Defence", "At the table"]);
+    expect(ENTRY_TYPES.npc.extra!.map((f) => f.label)).toEqual(["Wants", "Fears", "Secret", "Voice"]);
+    expect(ENTRY_TYPES.pc.extra!.map((f) => f.label)).toEqual(["Drive", "Burden", "Secret (GM)", "Voice"]);
+    for (const t of Object.values(ENTRY_TYPES)) {
+      expect(t.groups.filter((g) => g.gm).map((g) => g.name)).toEqual(t.fam === "party" ? [] : ["At the table"]);
+      const keys = [...(t.extra ?? []), ...t.groups.flatMap((g) => g.fields)].map((f) => f.key);
       expect(new Set(keys).size).toBe(keys.length);
     }
   });

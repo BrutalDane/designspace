@@ -178,6 +178,34 @@ a.wl:hover { border-bottom-color: var(--accent); }
 .toc-g { display: block; font-size: .68rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; margin-top: 6px; }
 .hist li { border-left: 2px solid var(--line); padding-left: 10px; }
 
+/* People, factions, items and the grouped tree (prototype: .person-h, .mono-badge, .triad, .voice, .split, .item-top, .mech, .people) */
+.wiki-side .grp + .grp { margin-top: 14px; }
+.kind-group { display: grid; gap: 6px; }
+.kind-group + .kind-group { margin-top: 8px; }
+.person-h { display: flex; gap: 16px; align-items: center; margin: 8px 0 2px; }
+.person-h h1 { margin: 0; }
+.mono-badge { width: 64px; height: 64px; flex: none; border-radius: 50%; display: grid; place-items: center; font-family: var(--serif); font-size: 1.5rem; font-weight: 700; background: var(--accent-soft); color: var(--accent); border: 2px solid var(--accent); }
+.mono-badge.pc { background: var(--review-soft); color: var(--review); border-color: var(--review); }
+.mono-badge.sm { width: 36px; height: 36px; font-size: .85rem; border-width: 1px; }
+.triad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 4px 0 16px; }
+.tri { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: .95rem; }
+.tri p { margin: .3em 0 0; }
+.tri.want, .tri.drive { border-top: 3px solid var(--accent); }
+.tri.fear, .tri.burden { border-top: 3px solid var(--ochre); }
+.tri.secret { border-top: 3px solid var(--danger); }
+.voice { margin: 10px 0 0; padding: 12px 16px; border-left: 3px solid var(--accent); font-family: var(--serif); font-style: italic; font-size: 1.15rem; color: var(--ink-2); background: var(--surface); border-radius: 0 10px 10px 0; }
+.voice .eyebrow { display: block; font-style: normal; font-family: var(--sans); margin-bottom: 2px; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+.split > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.split > div p { margin: .3em 0; }
+.split .hid { background: var(--danger-soft); border-color: transparent; }
+.item-top { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+.p-working { background: var(--ochre-soft); color: var(--ochre); }
+.mech { background: var(--raised); border: 1px solid var(--line); border-left: 4px solid var(--ochre); border-radius: 8px; padding: 10px 14px; font-size: .95rem; }
+.people { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.people li { display: flex; gap: 10px; align-items: center; }
+@media (max-width: 700px) { .triad, .split { grid-template-columns: minmax(0, 1fr); } }
+
 @media (max-width: 1300px) {
   .place-layout { grid-template-columns: minmax(0, 1fr); }
   .ctx { position: static; max-height: none; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }

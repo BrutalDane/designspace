@@ -5,10 +5,11 @@ import { redirect, notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db, schema } from "@/db";
-import { childTypes, PLACE_TYPES, type PlaceType } from "@/lib/reference";
+import { childTypes, ENTRY_TYPES, REF_FIELDS, type EntryType } from "@/lib/reference";
+import { refId } from "@/lib/auto-lists";
 import { ancestors } from "@/lib/tree";
 import { linkIndex, linkTargets, pageText } from "@/lib/links";
-import type { NewPlaceInput, PageContent } from "@/lib/validation";
+import type { NewPageInput, PageContent } from "@/lib/validation";
 
 /**
  * Data access layer. Every read or write of campaign data goes through here,
@@ -44,41 +45,41 @@ export async function insertCampaign(input: { name: string; setting: string; rul
   return c;
 }
 
-/* ---------- Wiki: places ---------- */
-export type PlaceSummary = { id: string; parentId: string | null; type: PlaceType; title: string; lead: string };
+/* ---------- Wiki pages ---------- */
+export type PageSummary = { id: string; parentId: string | null; type: EntryType; title: string; lead: string; info: Record<string, string> };
 
-/** Every place in the campaign with its current title and lead (taken from its newest version). */
-export const listPlaces = cache(async (campaignId: string): Promise<PlaceSummary[]> => {
+/** Every page in the campaign with its current title, lead and infobox values (taken from its newest version). */
+export const listPages = cache(async (campaignId: string): Promise<PageSummary[]> => {
   const c = await getCampaign(campaignId);
   const { entry, entryRevision } = schema;
-  const rows = await db.selectDistinctOn([entryRevision.entryId], { id: entry.id, parentId: entry.parentId, type: entry.type, title: entryRevision.title, lead: entryRevision.lead })
+  const rows = await db.selectDistinctOn([entryRevision.entryId], { id: entry.id, parentId: entry.parentId, type: entry.type, title: entryRevision.title, lead: entryRevision.lead, info: entryRevision.info })
     .from(entry).innerJoin(entryRevision, eq(entryRevision.entryId, entry.id))
     .where(eq(entry.campaignId, c.id))
     .orderBy(entryRevision.entryId, desc(entryRevision.number));
-  return rows.map((r) => ({ ...r, type: r.type as PlaceType }));
+  return rows.map((r) => ({ ...r, type: r.type as EntryType }));
 });
 
 /** A place and its current version. 404 unless it belongs to a campaign the signed-in GM owns. */
-export const getPlace = cache(async (campaignId: string, placeId: string) => {
+export const getPage = cache(async (campaignId: string, pageId: string) => {
   const c = await getCampaign(campaignId);
-  if (!isId(placeId)) notFound();
-  const [e] = await db.select().from(schema.entry).where(and(eq(schema.entry.id, placeId), eq(schema.entry.campaignId, c.id)));
+  if (!isId(pageId)) notFound();
+  const [e] = await db.select().from(schema.entry).where(and(eq(schema.entry.id, pageId), eq(schema.entry.campaignId, c.id)));
   if (!e) notFound();
   const [current] = await db.select().from(schema.entryRevision)
     .where(eq(schema.entryRevision.entryId, e.id)).orderBy(desc(schema.entryRevision.number)).limit(1);
-  return { ...e, type: e.type as PlaceType, current };
+  return { ...e, type: e.type as EntryType, current };
 });
 
 /** All versions of a place, newest first, with the name of whoever saved each one. */
-export async function listVersions(campaignId: string, placeId: string) {
-  const p = await getPlace(campaignId, placeId);
+export async function listVersions(campaignId: string, pageId: string) {
+  const p = await getPage(campaignId, pageId);
   return db.select({ version: schema.entryRevision, author: schema.user.name })
     .from(schema.entryRevision).innerJoin(schema.user, eq(schema.user.id, schema.entryRevision.authorId))
     .where(eq(schema.entryRevision.entryId, p.id)).orderBy(desc(schema.entryRevision.number));
 }
 
-export async function getVersion(campaignId: string, placeId: string, number: number) {
-  const p = await getPlace(campaignId, placeId);
+export async function getVersion(campaignId: string, pageId: string, number: number) {
+  const p = await getPage(campaignId, pageId);
   if (!Number.isInteger(number) || number < 1) notFound();
   const [v] = await db.select().from(schema.entryRevision)
     .where(and(eq(schema.entryRevision.entryId, p.id), eq(schema.entryRevision.number, number)));
@@ -87,18 +88,18 @@ export async function getVersion(campaignId: string, placeId: string, number: nu
 }
 
 /** Places a page may move under: allowed parent types only, never itself or anything inside it. */
-export async function validParents(campaignId: string, placeId: string) {
-  const [p, places] = await Promise.all([getPlace(campaignId, placeId), listPlaces(campaignId)]);
+export async function validParents(campaignId: string, pageId: string) {
+  const [p, places] = await Promise.all([getPage(campaignId, pageId), listPages(campaignId)]);
   return places
-    .filter((x) => PLACE_TYPES[p.type].parents.includes(x.type) && x.id !== p.id && !ancestors(places, x.id).some((a) => a.id === p.id))
+    .filter((x) => ENTRY_TYPES[p.type].parents.includes(x.type) && x.id !== p.id && !ancestors(places, x.id).some((a) => a.id === p.id))
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 
 /** Creates a place inside `parentId` (or at the top of the Wiki) together with its first version. */
-export async function insertPlace(campaignId: string, parentId: string | null, input: NewPlaceInput): Promise<{ id: string } | { error: string }> {
+export async function insertPage(campaignId: string, parentId: string | null, input: NewPageInput): Promise<{ id: string } | { error: string }> {
   const gm = await requireGM();
   const c = await getCampaign(campaignId);
-  const parent = parentId ? await getPlace(c.id, parentId) : null;
+  const parent = parentId ? await getPage(c.id, parentId) : null;
   if (!childTypes(parent?.type ?? null).includes(input.type)) return { error: "That kind of place can't go here." };
   return db.transaction(async (tx) => {
     const [e] = await tx.insert(schema.entry).values({ campaignId: c.id, parentId: parent?.id ?? null, type: input.type }).returning();
@@ -121,16 +122,24 @@ const isUniqueViolation = (e: unknown) => {
  * started editing from; if another save happened in between (a second tab), nothing is changed and the caller gets
  * the newer number. The Parent is where the page sits, not page text, so a move is not a new version.
  */
-export async function savePlace(campaignId: string, placeId: string, basedOn: number, content: PageContent, parentId: string | null):
+export async function savePage(campaignId: string, pageId: string, basedOn: number, content: PageContent, parentId: string | null):
   Promise<{ saved: boolean } | { conflict: number } | { error: string }> {
   const gm = await requireGM();
-  const p = await getPlace(campaignId, placeId);
+  const p = await getPage(campaignId, pageId);
   if (p.current.number !== basedOn) return { conflict: p.current.number };
   const moving = parentId !== p.parentId;
   if (moving) {
-    if (parentId === null ? PLACE_TYPES[p.type].parents.length > 0 : !(await validParents(campaignId, placeId)).some((x) => x.id === parentId)) {
-      return { error: `A ${PLACE_TYPES[p.type].label.toLowerCase()} can't go there.` };
+    if (parentId === null ? !ENTRY_TYPES[p.type].root : !(await validParents(campaignId, pageId)).some((x) => x.id === parentId)) {
+      return { error: `A ${ENTRY_TYPES[p.type].label.toLowerCase()} can't go there.` };
     }
+  }
+  // Location, Faction and Holder must point at a page of an allowed type in this campaign (never typed by hand).
+  const pages = await listPages(campaignId);
+  for (const [field, types] of Object.entries(REF_FIELDS)) {
+    const v = content.info[field];
+    if (!v) continue;
+    const target = pages.find((x) => x.id === refId(v));
+    if (!target || !types.includes(target.type) || target.id === p.id) return { error: `${field} must be one of the pages offered in the list.` };
   }
   const newVersion = !sameContent(p.current, content);
   if (!moving && !newVersion) return { saved: false };
@@ -147,14 +156,14 @@ export async function savePlace(campaignId: string, placeId: string, basedOn: nu
 }
 
 /** Brings back an older version by saving a copy of it as the newest version. History is never rewritten. */
-export async function restorePlaceVersion(campaignId: string, placeId: string, number: number) {
-  const p = await getPlace(campaignId, placeId);
-  const v = await getVersion(campaignId, placeId, number);
-  return savePlace(campaignId, placeId, p.current.number, { title: v.title, lead: v.lead, info: v.info, sections: v.sections }, p.parentId);
+export async function restorePageVersion(campaignId: string, pageId: string, number: number) {
+  const p = await getPage(campaignId, pageId);
+  const v = await getVersion(campaignId, pageId, number);
+  return savePage(campaignId, pageId, p.current.number, { title: v.title, lead: v.lead, info: v.info, sections: v.sections }, p.parentId);
 }
 
 /** The current text of every place in the campaign, for working out links. */
-const listPlaceTexts = cache(async (campaignId: string) => {
+const listPageTexts = cache(async (campaignId: string) => {
   const c = await getCampaign(campaignId);
   const { entry, entryRevision } = schema;
   return db.selectDistinctOn([entryRevision.entryId], { id: entry.id, lead: entryRevision.lead, info: entryRevision.info, sections: entryRevision.sections })
@@ -164,8 +173,8 @@ const listPlaceTexts = cache(async (campaignId: string) => {
 });
 
 /** Pages this place links to, and pages that link to it. Worked out from page text; nothing is stored twice. */
-export async function placeLinks(campaignId: string, placeId: string) {
-  const [p, places, texts] = await Promise.all([getPlace(campaignId, placeId), listPlaces(campaignId), listPlaceTexts(campaignId)]);
+export async function pageLinks(campaignId: string, pageId: string) {
+  const [p, places, texts] = await Promise.all([getPage(campaignId, pageId), listPages(campaignId), listPageTexts(campaignId)]);
   const index = linkIndex(places);
   const byId = new Map(places.map((x) => [x.id, x]));
   const linksTo = linkTargets(pageText(p.current), index).filter((id) => id !== p.id);

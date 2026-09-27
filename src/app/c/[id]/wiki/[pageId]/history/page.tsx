@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPlace, listPlaces, listVersions } from "@/lib/dal";
+import { getPage, listPages, listVersions } from "@/lib/dal";
 import { ancestors } from "@/lib/tree";
 import { changedParts } from "@/lib/validation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 
-type Props = { params: Promise<{ id: string; placeId: string }> };
+type Props = { params: Promise<{ id: string; pageId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id, placeId } = await params;
-  return { title: `History of ${(await getPlace(id, placeId)).current.title} · Designspace` };
+  const { id, pageId } = await params;
+  return { title: `History of ${(await getPage(id, pageId)).current.title} · Designspace` };
 }
 
 export default async function Page({ params }: Props) {
-  const { id, placeId } = await params;
-  const [p, places, versions] = await Promise.all([getPlace(id, placeId), listPlaces(id), listVersions(id, placeId)]);
+  const { id, pageId } = await params;
+  const [p, places, versions] = await Promise.all([getPage(id, pageId), listPages(id), listVersions(id, pageId)]);
   const base = `/c/${id}/wiki/${p.id}`;
   return (
     <section aria-labelledby="hist-h">

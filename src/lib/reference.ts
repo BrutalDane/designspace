@@ -12,25 +12,40 @@ export const WORKSPACES = [
   { slug: "sessions", label: "Sessions" },
 ] as const;
 
-/* ---------- Wiki: place types ----------
+/* ---------- Wiki: entry types ----------
  * Copied from the decided reference (reference/wiki-page-design.md, from prototype-v6-types.js). Do not add or rename
  * sections, info fields or parents here without Thor's decision. Keys in CAPITALS are lists the app builds itself.
- * Dungeon level is decided but follows in a later slice (it needs keyed areas).
+ * Built so far: places (slice 1) and people and groups (slice 3). Dungeon level, threads, beliefs, lore, bestiary and
+ * rules follow in slice 4 (then Faction also gets Deity as an allowed parent, as decided).
  */
-export type PlaceType = "world" | "region" | "settlement" | "district" | "building" | "site" | "dungeon";
+export type EntryType = "world" | "region" | "settlement" | "district" | "building" | "site" | "dungeon"
+  | "npc" | "pc" | "party" | "faction" | "item";
+export type Family = "place" | "person" | "faction" | "party" | "item";
 export type Field = { key: string; label: string };
 export type Group = { name: string; fields: Field[]; gm: boolean };
-export type PlaceTypeDef = { label: string; parents: PlaceType[]; kids: string; info: string[]; groups: Group[] };
+export type TypeDef = {
+  label: string;
+  group: string;          // type group in the tree (Places, People, …)
+  fam: Family;            // layout family: extra elements on top of the common page anatomy
+  parents: EntryType[];   // allowed parents (empty: never has a parent)
+  root: boolean;          // may sit at the top of its hierarchy with no parent
+  kids?: string;          // how its children are listed
+  info: string[];         // infobox fields ("Parent" is the tree position, not typed)
+  extra?: Field[];        // family fields shown above the groups (triad, voice, public face…)
+  groups: Group[];
+};
 
 /** Lists the app builds itself; never typed by hand and never listed as "not written yet". */
-export const AUTO = ["CHILDREN", "PEOPLE", "AREAS"] as const;
+export const AUTO = ["CHILDREN", "PEOPLE", "AREAS", "MEMBERS", "CARRIES"] as const;
 export const isAuto = (key: string) => (AUTO as readonly string[]).includes(key);
 
 const G = (name: string, fields: [string, string][], gm = false): Group => ({ name, fields: fields.map(([key, label]) => ({ key, label })), gm });
+const F = (fields: [string, string][]): Field[] => fields.map(([key, label]) => ({ key, label }));
+const place = { group: "Places", fam: "place" as const, root: false };
 
-export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
+export const ENTRY_TYPES: Record<EntryType, TypeDef> = {
   world: {
-    label: "World / Plane", parents: [], kids: "Regions", info: ["Type", "Parent"],
+    ...place, root: true, label: "World / Plane", parents: [], kids: "Regions", info: ["Type", "Parent"],
     groups: [
       G("Overview", [["description", "Description"], ["cosmology", "Cosmology"], ["history", "History"]]),
       G("Places", [["CHILDREN", "Regions"]]),
@@ -38,7 +53,7 @@ export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
     ],
   },
   region: {
-    label: "Region", parents: ["world", "region"], kids: "Places", info: ["Type", "Parent", "Terrain", "Climate", "Authority", "Population", "Danger"],
+    ...place, label: "Region", parents: ["world", "region"], kids: "Places", info: ["Type", "Parent", "Terrain", "Climate", "Authority", "Population", "Danger"],
     groups: [
       G("Overview", [["description", "Description"], ["history", "History"]]),
       G("The land", [["geography", "Geography"], ["climate", "Climate and seasons"], ["flora", "Fauna and flora"], ["phenomena", "Local phenomena"], ["resources", "Natural resources"]]),
@@ -48,7 +63,7 @@ export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
     ],
   },
   settlement: {
-    label: "Settlement", parents: ["region"], kids: "Districts and places", info: ["Type", "Parent", "Population", "Governance", "Economy", "Defence"],
+    ...place, label: "Settlement", parents: ["region"], kids: "Districts and places", info: ["Type", "Parent", "Population", "Governance", "Economy", "Defence"],
     groups: [
       G("Overview", [["description", "Description"], ["history", "History"]]),
       G("Society", [["demographics", "Demographics"], ["government", "Government"], ["culture", "Culture and customs"], ["religion", "Religion"], ["factions", "Factions and guilds"]]),
@@ -59,7 +74,7 @@ export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
     ],
   },
   district: {
-    label: "District", parents: ["settlement"], kids: "Places", info: ["Type", "Parent", "Population", "Watch"],
+    ...place, label: "District", parents: ["settlement"], kids: "Places", info: ["Type", "Parent", "Population", "Watch"],
     groups: [
       G("Overview", [["description", "Description"], ["character", "Character"], ["history", "History"]]),
       G("Life here", [["residents", "Who lives here"], ["factions", "Factions and networks"], ["CHILDREN", "Points of interest"]]),
@@ -67,7 +82,7 @@ export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
     ],
   },
   building: {
-    label: "Building / Landmark", parents: ["district", "settlement", "region"], kids: "Parts", info: ["Type", "Parent", "Owner", "Built"],
+    ...place, label: "Building / Landmark", parents: ["district", "settlement", "region"], kids: "Parts", info: ["Type", "Parent", "Owner", "Built"],
     groups: [
       G("Overview", [["description", "Description"], ["purpose", "Purpose"], ["history", "History"]]),
       G("Design", [["architecture", "Design and architecture"], ["layout", "Layout and rooms"], ["entries", "Entries and exits"], ["sensory", "Sensory details"]]),
@@ -75,7 +90,7 @@ export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
     ],
   },
   site: {
-    label: "Site", parents: ["region", "settlement", "district"], kids: "Places", info: ["Type", "Parent", "Controlled by"],
+    ...place, label: "Site", parents: ["region", "settlement", "district"], kids: "Places", info: ["Type", "Parent", "Controlled by"],
     groups: [
       G("Overview", [["description", "Description"], ["history", "History"]]),
       G("The place", [["layout", "Layout"], ["sensory", "Sensory details"], ["inhabitants", "Inhabitants"]]),
@@ -83,7 +98,7 @@ export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
     ],
   },
   dungeon: {
-    label: "Dungeon", parents: ["region", "settlement", "district"], kids: "Levels", info: ["Type", "Parent", "Controlled by", "Threat", "Level range"],
+    ...place, label: "Dungeon", parents: ["region", "settlement", "district"], kids: "Levels", info: ["Type", "Parent", "Controlled by", "Threat", "Level range"],
     groups: [
       G("Overview", [["premise", "Premise"], ["history", "History"]]),
       G("Structure", [["approach", "Approach"], ["logic", "Spatial logic"], ["CHILDREN", "Levels"], ["sensory", "Sensory details"]]),
@@ -91,16 +106,73 @@ export const PLACE_TYPES: Record<PlaceType, PlaceTypeDef> = {
       G("At the table", [["impression", "First impression"], ["discoveries", "Discoveries"], ["hazards", "Hazards and tension"], ["treasure", "Treasure"], ["ignored", "If the party does nothing"]], true),
     ],
   },
+  faction: {
+    label: "Faction", group: "Factions", fam: "faction", root: true, parents: ["faction"], kids: "Branches",
+    info: ["Type", "Parent", "Leader", "Headquarters", "Scope", "Allies", "Rivals", "Disposition to party"],
+    extra: F([["public", "Public face"], ["hidden", "Hidden truth"], ["willdo", "Will do"], ["wont", "Won't do"]]),
+    groups: [
+      G("Overview", [["history", "History"]]),
+      G("Organisation", [["structure", "Structure"], ["leaders", "Leadership"], ["MEMBERS", "Members"], ["resources", "Assets and resources"], ["territories", "Territories"]]),
+      G("Culture", [["culture", "Culture and customs"], ["methods", "Methods"]]),
+      G("Relations", [["relations", "Relationships"]]),
+      G("At the table", [["goals", "Goals"], ["move", "Current move"], ["hooks", "Hooks"]], true),
+    ],
+  },
+  npc: {
+    label: "NPC", group: "People", fam: "person", root: true, parents: [], info: ["Role", "Ancestry", "Age", "Location", "Faction", "Status"],
+    extra: F([["want", "Wants"], ["fear", "Fears"], ["secret", "Secret"], ["voice", "Voice"]]),
+    groups: [
+      G("Description", [["appearance", "Appearance"], ["personality", "Personality"]]),
+      G("Story", [["who", "Who they are"], ["history", "History"]]),
+      G("Relationships", [["bonds", "Relationships"], ["CARRIES", "Carries"]]),
+      G("At the table", [["knows", "What they know"], ["will", "What they will do"], ["wont", "What they won't do"], ["hooks", "Hooks"], ["stats", "Stat basis"]], true),
+    ],
+  },
+  pc: {
+    label: "Player character", group: "Party", fam: "person", root: true, parents: [], info: ["Player", "Class and level", "Ancestry", "Background", "Status"],
+    extra: F([["drive", "Drive"], ["burden", "Burden"], ["secret", "Secret (GM)"], ["voice", "Voice"]]),
+    groups: [
+      G("Description", [["appearance", "Appearance"], ["personality", "Personality"]]),
+      G("Story", [["background", "Background"], ["arc", "Arc and open beats"]]),
+      G("Relationships", [["bonds", "Bonds"], ["CARRIES", "Carries"]]),
+      G("At the table", [["hooks", "Hooks for the GM"]], true),
+    ],
+  },
+  party: {
+    label: "Party", group: "Party", fam: "party", root: true, parents: [], info: ["Location", "Goal", "Reputation"],
+    groups: [G("The group", [["bonds", "Bonds"], ["tensions", "Tensions"], ["resources", "Shared resources"], ["secrets", "Shared secrets"]])],
+  },
+  item: {
+    label: "Magic item", group: "Items", fam: "item", root: true, parents: [], info: ["Rarity", "Kind", "Attunement", "Holder"],
+    groups: [
+      G("Lore", [["story", "Why it matters"], ["look", "Description"], ["history", "History"]]),
+      G("Mechanics", [["effects", "Effects"], ["rules", "Rules basis"]]),
+      G("At the table", [["found", "How it is found or opened"], ["pressure", "Pressure it creates"]], true),
+    ],
+  },
 };
 
-/** Image slot label in the infobox, per type (from the prototype). */
-export const INFOBOX_IMAGE: Partial<Record<PlaceType, string>> = { region: "Map", settlement: "Map", building: "Illustration", site: "Map", dungeon: "Map" };
+/** Type groups in tree order (from the prototype); only groups with pages appear. */
+export const GROUP_ORDER = ["Campaign", "Threads", "Places", "Factions", "People", "Party", "Beliefs", "World", "Bestiary", "Items", "Rules"];
+export const PLACE_TYPES = (Object.keys(ENTRY_TYPES) as EntryType[]).filter((t) => ENTRY_TYPES[t].fam === "place");
 
-export const isPlaceType = (t: string): t is PlaceType => Object.hasOwn(PLACE_TYPES, t);
-/** The typed sections of a type, in page order (automatic lists left out). */
-export const writtenFields = (t: PlaceType) => PLACE_TYPES[t].groups.flatMap((g) => g.fields).filter((f) => !isAuto(f.key));
-/** Infobox fields the GM types. "Parent" is the page's place in the tree, not a typed field. */
-export const infoFields = (t: PlaceType) => PLACE_TYPES[t].info.filter((k) => k !== "Parent");
-/** Which types may go inside a parent of the given type (null = the top of the Wiki: types with no allowed parents). */
-export const childTypes = (parent: PlaceType | null): PlaceType[] =>
-  (Object.keys(PLACE_TYPES) as PlaceType[]).filter((t) => (parent ? PLACE_TYPES[t].parents.includes(parent) : PLACE_TYPES[t].parents.length === 0));
+/**
+ * Infobox fields that point at another page, and which types they may point at. The editor offers a list of those
+ * pages (the GM never types links); they drive the automatic lists People here, Members and Carries.
+ */
+export const REF_FIELDS: Record<string, EntryType[]> = { Location: PLACE_TYPES, Faction: ["faction"], Holder: ["npc", "pc"] };
+
+/** Image slot label in the infobox, per type (from the prototype). */
+export const INFOBOX_IMAGE: Partial<Record<EntryType, string>> = {
+  region: "Map", settlement: "Map", building: "Illustration", site: "Map", dungeon: "Map",
+  npc: "Portrait", pc: "Portrait", faction: "Emblem", item: "Illustration",
+};
+
+export const isEntryType = (t: string): t is EntryType => Object.hasOwn(ENTRY_TYPES, t);
+/** Everything written as text on a page of this type, in editor order: family fields, then sections (lists left out). */
+export const writtenFields = (t: EntryType) => [...(ENTRY_TYPES[t].extra ?? []), ...ENTRY_TYPES[t].groups.flatMap((g) => g.fields).filter((f) => !isAuto(f.key))];
+/** Infobox fields the GM fills. "Parent" is the page's place in the tree, not a typed field. */
+export const infoFields = (t: EntryType) => ENTRY_TYPES[t].info.filter((k) => k !== "Parent");
+/** Which types may go inside a parent of the given type (null: types that may sit at the top). */
+export const childTypes = (parent: EntryType | null): EntryType[] =>
+  (Object.keys(ENTRY_TYPES) as EntryType[]).filter((t) => (parent ? ENTRY_TYPES[t].parents.includes(parent) : ENTRY_TYPES[t].root));

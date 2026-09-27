@@ -1,12 +1,12 @@
 "use client";
 import { useActionState } from "react";
 import Link from "next/link";
-import { PLACE_TYPES, type PlaceType } from "@/lib/reference";
-import type { PlaceFormState } from "../actions";
+import { ENTRY_TYPES, GROUP_ORDER, type EntryType } from "@/lib/reference";
+import type { PageFormState } from "../actions";
 
-type Props = { action: (s: PlaceFormState, f: FormData) => Promise<PlaceFormState>; kinds: PlaceType[]; cancelHref: string };
+type Props = { action: (s: PageFormState, f: FormData) => Promise<PageFormState>; kinds: EntryType[]; cancelHref: string };
 
-export function NewPlaceForm({ action, kinds, cancelHref }: Props) {
+export function NewPageForm({ action, kinds, cancelHref }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const err = (k: string) => state?.fieldErrors?.[k]?.[0];
   const v = state?.values;
@@ -14,11 +14,16 @@ export function NewPlaceForm({ action, kinds, cancelHref }: Props) {
     <form action={formAction} className="stack" noValidate>
       <fieldset className="kinds">
         <legend>What are you making?</legend>
-        {kinds.map((k) => (
-          <label key={k} className="kind-option">
-            <input type="radio" name="type" value={k} defaultChecked={(v?.type ?? kinds[0]) === k} />
-            <span>{PLACE_TYPES[k].label}</span>
-          </label>
+        {GROUP_ORDER.filter((g) => kinds.some((k) => ENTRY_TYPES[k].group === g)).map((g) => (
+          <div key={g} className="kind-group">
+            <span className="toc-g">{g}</span>
+            {kinds.filter((k) => ENTRY_TYPES[k].group === g).map((k) => (
+              <label key={k} className="kind-option">
+                <input type="radio" name="type" value={k} defaultChecked={(v?.type ?? kinds[0]) === k} />
+                <span>{ENTRY_TYPES[k].label}</span>
+              </label>
+            ))}
+          </div>
         ))}
         {err("type") && <span className="err">{err("type")}</span>}
       </fieldset>
