@@ -18,3 +18,8 @@ One line each: date · decision · why. Product decisions are Thor's; technical 
 - 2026-09-27 · Scripts start programs without a shell; only `npx` goes through one, and only with plain-word arguments · On Windows a shell splits multi-word arguments, which silently broke the backup restore check.
 - 2026-09-27 · Local dev uses Node.js 24 LTS (installed via winget); CI stays on Node 22 · Both meet `engines: >=22`; the gate passed on both.
 - 2026-09-27 · Commits from Thor's computer are authored as Thor (project-level git setting) · Commits link to his GitHub account.
+- 2026-09-27 · Wiki entries store identity and tree position only; all page text lives in numbered, never-edited versions, and the newest version is the page · One place for each fact; history comes free and can't drift from the page.
+- 2026-09-27 · Place kinds (World, Region, Settlement, District, Site) and their page sections are product reference data in `reference.ts`; sections are optional prompts, and empty ones are hidden · Layouts guide writing without becoming a form to fill in.
+- 2026-09-27 · Nesting: World at the top; Region in World/Region; Settlement in World/Region; District in Settlement; Site in anything but Site; Region and Settlement may also sit at the top · Covers one-town and one-region campaigns without forcing a World page.
+- 2026-09-27 · Saving checks the version the editor started from; a stale save is refused with the typed text kept, never merged or overwritten · Two tabs can't silently lose work.
+- 2026-09-27 · Restoring an old version saves a copy as the newest version · History is never rewritten.

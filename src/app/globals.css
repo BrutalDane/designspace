@@ -24,6 +24,7 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+html { scroll-padding-top: 80px; } /* keeps headings clear of the sticky top bar after navigation */
 body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; }
 h1, h2, h3 { font-family: var(--serif); font-weight: 700; margin: 0; text-wrap: balance; }
 h2 { font-size: 1.35rem; }
@@ -83,3 +84,56 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .page { padding: 20px 16px 60px; }
 }
 .opt { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+/* ---------- Wiki ---------- */
+a.btn { display: inline-block; color: var(--ink); text-decoration: none; }
+a.btn.primary { color: var(--accent-ink); }
+a.btn.ghost { color: var(--accent); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hint { font-size: .88rem; color: var(--ink-3); text-transform: none; letter-spacing: 0; font-weight: 400; }
+.field textarea, .doc-field textarea { font-size: 1rem; color: var(--ink); background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; text-transform: none; letter-spacing: 0; font-weight: 400; resize: vertical; field-sizing: content; min-height: 2.8lh; }
+
+.wiki { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 36px; align-items: start; }
+.wiki-side { position: sticky; top: 72px; max-height: calc(100vh - 96px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 10px; }
+.wiki-side .eyebrow, .wiki-side > p { padding-inline: 8px; }
+.wiki-side > p { margin: 0; }
+.wiki-side ul { list-style: none; margin: 0; padding: 0; }
+.wiki-side ul ul { margin-left: 10px; padding-left: 6px; border-left: 1px solid var(--line); }
+.wiki-side a { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 4px 8px; border-radius: 6px; color: var(--ink); text-decoration: none; }
+.wiki-side a:hover { background: var(--surface-2); }
+.wiki-side a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.kind { font-size: .7rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; white-space: nowrap; }
+.wiki-side a[aria-current="page"] .kind { color: inherit; }
+
+.crumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0 0 12px; padding: 0; font-size: .92rem; color: var(--ink-2); }
+.crumbs li + li::before { content: "›"; margin-right: 6px; color: var(--ink-3); }
+.place-head { display: grid; gap: 8px; margin-bottom: 20px; }
+.doc { max-width: 68ch; }
+.doc section { margin-top: 24px; }
+.doc h2 { margin-bottom: 6px; }
+.prose p { margin: 0 0 10px; white-space: pre-line; }
+.inside { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 68ch; }
+.inside ul { padding-left: 20px; margin: 10px 0; }
+.inside li { margin: 4px 0; }
+.meta { margin-top: 28px; }
+.notice { background: var(--review-soft); border-radius: 10px; padding: 12px 16px; margin: 14px 0 22px; max-width: 68ch; }
+.notice p { margin: 0; }
+.versions { list-style: none; padding: 0; margin: 20px 0; display: grid; gap: 10px; max-width: 68ch; }
+.versions li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.versions .pill { margin-left: 8px; }
+
+.narrow-form, .edit-form { max-width: 68ch; }
+.kinds { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+.kinds legend { font-weight: 700; margin-bottom: 6px; }
+.kind-option { display: flex; gap: 10px; align-items: baseline; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.kind-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.kind-option:has(input:checked) .muted { color: var(--ink-2); }
+.doc-field { display: grid; gap: 4px; }
+.doc-field-h { font-family: var(--serif); font-weight: 700; font-size: 1.2rem; }
+.sticky-actions { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0; border-top: 1px solid var(--line); }
+
+@media (max-width: 820px) {
+  .wiki { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .wiki-side { position: static; max-height: none; }
+  .wiki-side:not(.is-index) { display: none; }
+}

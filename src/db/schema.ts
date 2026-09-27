@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, index, uniqueIndex, integer, jsonb, type AnyPgColumn } from "drizzle-orm/pg-core";
 
 /* ---------- Sign-in tables (shape required by Better Auth) ---------- */
 export const user = pgTable("user", {
@@ -60,3 +60,28 @@ export const campaign = pgTable("campaign", {
 }, (t) => [index("campaign_owner_idx").on(t.ownerId)]);
 
 export type Campaign = typeof campaign.$inferSelect;
+
+/* ---------- Wiki ---------- */
+/** A wiki entry's identity and place in the tree. Everything written on the page lives in its revisions. */
+export const entry = pgTable("entry", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id").notNull().references(() => campaign.id, { onDelete: "cascade" }),
+  parentId: uuid("parent_id").references((): AnyPgColumn => entry.id, { onDelete: "restrict" }),
+  type: text("type").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("entry_campaign_idx").on(t.campaignId), index("entry_parent_idx").on(t.parentId)]);
+
+/** Every saved version of an entry. Never changed after it is written; the newest one is the page. */
+export const entryRevision = pgTable("entry_revision", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  entryId: uuid("entry_id").notNull().references(() => entry.id, { onDelete: "cascade" }),
+  number: integer("number").notNull(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull().default(""),
+  sections: jsonb("sections").$type<Record<string, string>>().notNull().default({}),
+  authorId: text("author_id").notNull().references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [uniqueIndex("entry_revision_number_idx").on(t.entryId, t.number)]);
+
+export type Entry = typeof entry.$inferSelect;
+export type EntryRevision = typeof entryRevision.$inferSelect;

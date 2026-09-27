@@ -8,6 +8,13 @@
       "when": 1790508476158,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790515751722,
+      "tag": "0001_wiki_places",
+      "breakpoints": true
     }
   ]
 }
