@@ -92,7 +92,7 @@ test("people, factions, the party and items, with the lists that build themselve
 
   // The lists that build themselves
   const tree = page.getByRole("navigation", { name: "Campaign pages" });
-  await expect(tree.locator(".gh")).toHaveText(["Places3", "Factions2", "People1", "Party2", "Items1"]);
+  await expect(tree.locator(".gh")).toHaveText(["Campaign", "Places3", "Factions2", "People1", "Party2", "Items1"]);
   await tree.getByRole("link", { name: "Maret Holwick" }).click();
   await expect(page.getByRole("region", { name: "Carries" }).getByRole("link", { name: "Lantern of the Deep Road" })).toBeVisible();
   await page.getByRole("complementary", { name: "Infobox" }).getByRole("link", { name: "Vellumis" }).click();

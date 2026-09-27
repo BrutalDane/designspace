@@ -7,7 +7,7 @@ test("create a campaign, open it and switch workspaces", async ({ page }) => {
   await page.getByLabel("Setting").fill("The Vale of Thren, Faerûn");
   await page.getByRole("button", { name: "Create campaign" }).click();
   await expect(page).toHaveURL(/\/c\/[0-9a-f-]{36}\/wiki$/);
-  await expect(page.getByRole("heading", { name: "Wiki", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Campaign State", level: 1 })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Workspaces" });
   await expect(nav.getByRole("link", { name: "Wiki" })).toHaveAttribute("aria-current", "page");
   await nav.getByRole("link", { name: "Worldbuilding" }).click();

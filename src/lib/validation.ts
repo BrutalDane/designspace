@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { RULESETS, CALENDARS, ENTRY_TYPES, infoFields, writtenFields, type EntryType } from "@/lib/reference";
+import { changedData, type PageData } from "@/lib/page-data";
 
 export const CampaignInput = z.object({
   name: z.string().trim().min(2, { error: "Give the campaign a name of at least 2 characters." }).max(80, { error: "Keep the name under 80 characters." }),
@@ -25,6 +26,8 @@ export const NewPageInput = z.object({
 export type NewPageInput = z.infer<typeof NewPageInput>;
 
 export type PageContent = { title: string; lead: string; info: Record<string, string>; sections: Record<string, string> };
+/** A whole page version: its text plus the structured parts (clock, routes, keyed areas). */
+export type PageVersion = PageContent & { data: PageData };
 
 const dropEmpty = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== ""));
 
@@ -43,12 +46,13 @@ export function parsePage(type: EntryType, data: { title: unknown; lead: unknown
 }
 
 /** Names the parts of a page that differ between two versions, in page order. */
-export function changedParts(type: EntryType, before: PageContent | undefined, after: PageContent): string[] {
+export function changedParts(type: EntryType, before: PageVersion | undefined, after: PageVersion): string[] {
   if (!before) return ["Created"];
   const parts: string[] = [];
   if (before.title !== after.title) parts.push("Title");
   if (before.lead !== after.lead) parts.push("Lead");
   for (const k of infoFields(type)) if ((before.info[k] ?? "") !== (after.info[k] ?? "")) parts.push(k);
   for (const f of writtenFields(type)) if ((before.sections[f.key] ?? "") !== (after.sections[f.key] ?? "")) parts.push(f.label);
+  parts.push(...changedData(before.data, after.data));
   return parts;
 }

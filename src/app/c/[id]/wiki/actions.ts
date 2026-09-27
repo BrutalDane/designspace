@@ -2,7 +2,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
-import { getPage, insertPage, listPages, restorePageVersion, savePage as savePageData } from "@/lib/dal";
+import { getPage, insertPage, listPages, restorePageVersion, savePage as savePageData, setRouteFound } from "@/lib/dal";
+import { parseData } from "@/lib/page-data";
 import { linkIndex, toStored, type LinkIndex } from "@/lib/links";
 import { REF_FIELDS, infoFields, writtenFields } from "@/lib/reference";
 import { NewPageInput, parsePage } from "@/lib/validation";
@@ -39,10 +40,17 @@ export async function createPage(campaignId: string, parentId: string | null, _:
 export async function savePage(campaignId: string, pageId: string, basedOn: number, _: PageFormState, formData: FormData): Promise<PageFormState> {
   const p = await getPage(campaignId, pageId);
   const infoKeys = infoFields(p.type), sectionKeys = writtenFields(p.type).map((f) => f.key);
-  // Form names: "title", "lead", "parent", "i.<infobox label>", "s.<section key>".
+  // Form names: "title", "lead", "parent", "i.<infobox label>", "s.<section key>", and for the structured parts
+  // "d.clock", "d.portent", "d.routes" and one "a.n" / "a.area" / "a.text" per keyed-area row.
   const values: Record<string, string> = { title: text(formData.get("title")), lead: text(formData.get("lead")), parent: text(formData.get("parent")) };
   for (const k of infoKeys) values[`i.${k}`] = text(formData.get(`i.${k}`));
   for (const k of sectionKeys) values[`s.${k}`] = text(formData.get(`s.${k}`));
+  for (const k of ["d.clock", "d.portent", "d.routes"]) values[k] = text(formData.get(k));
+  const [ns, names, texts] = ["a.n", "a.area", "a.text"].map((k) => formData.getAll(k).map(text));
+  const areas = names.map((area, i) => ({ n: ns[i] ?? "", area, text: texts[i] ?? "" }));
+  values["d.areas"] = JSON.stringify(areas);
+  const data = parseData(p.type, { clockPos: values["d.clock"], portent: values["d.portent"], routes: values["d.routes"], areas }, p.current.data);
+  if ("error" in data) return { error: data.error, values };
   const parsed = parsePage(p.type, {
     title: values.title, lead: values.lead,
     info: Object.fromEntries(infoKeys.map((k) => [k, values[`i.${k}`]])),
@@ -64,6 +72,7 @@ export async function savePage(campaignId: string, pageId: string, basedOn: numb
     title: parsed.data.title, lead: links.out.lead,
     info: Object.fromEntries(Object.keys(parsed.data.info).map((k) => [k, links.out[`i.${k}`]])),
     sections: Object.fromEntries(Object.keys(parsed.data.sections).map((k) => [k, links.out[`s.${k}`]])),
+    data: data.data,
   };
   const r = await savePageData(campaignId, pageId, basedOn, content, values.parent || null);
   if ("error" in r) return { error: r.error, values };
@@ -78,4 +87,10 @@ export async function restoreVersion(campaignId: string, pageId: string, number:
   await restorePageVersion(campaignId, pageId, number);
   revalidatePath(wiki(campaignId), "layout");
   redirect(`${wiki(campaignId)}/${pageId}`);
+}
+
+/** Ticks a route to a clue found (or not). Called from the clue page. */
+export async function markRoute(campaignId: string, pageId: string, basedOn: number, index: number, found: boolean) {
+  await setRouteFound(campaignId, pageId, basedOn, index, found);
+  revalidatePath(wiki(campaignId), "layout");
 }

@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, boolean, uuid, index, uniqueIndex, integer, jsonb, type AnyPgColumn } from "drizzle-orm/pg-core";
+import type { PageData } from "../lib/page-data";
 
 /* ---------- Sign-in tables (shape required by Better Auth) ---------- */
 export const user = pgTable("user", {
@@ -79,6 +80,7 @@ export const entryRevision = pgTable("entry_revision", {
   title: text("title").notNull(),
   lead: text("lead").notNull().default(""),
   info: jsonb("info").$type<Record<string, string>>().notNull().default({}),
+  data: jsonb("data").$type<PageData>().notNull().default({}),
   sections: jsonb("sections").$type<Record<string, string>>().notNull().default({}),
   authorId: text("author_id").notNull().references(() => user.id, { onDelete: "restrict" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

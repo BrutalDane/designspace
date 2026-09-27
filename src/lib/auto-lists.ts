@@ -40,3 +40,8 @@ export function carries<T extends Page>(pages: T[], personId: string): T[] {
 export function partyMembers<T extends Page>(pages: T[]): T[] {
   return pages.filter((p) => p.type === "pc");
 }
+
+/** Clocks: threads with a clock whose "Driven by" is this NPC or faction (decided: clocks live on threads). */
+export function drivenBy<T extends Page & { data: { clock?: unknown } }>(pages: T[], id: string): T[] {
+  return pages.filter((p) => p.type === "thread" && p.data.clock && refId(p.info["Driven by"]) === id);
+}

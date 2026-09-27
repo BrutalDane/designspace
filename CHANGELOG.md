@@ -1,5 +1,12 @@
 # Changelog
 
+## M1 slice 4: The remaining types (2026-09-27)
+- All decided page types now exist: Arc, Thread / Front, Clue / Revelation, Deity / Religion, Culture, Lore, Creature, Rule reference, House ruling and Dungeon level, with their layouts.
+- Threads: a clock (0 to 5 segments, next portent) and the Impulse → Portents → If ignored ladder; "Driven by" an NPC or faction.
+- Clues: routes you tick off as found, with a warning under three routes. Dungeon levels: a keyed-areas table. Rules: rulings in this campaign.
+- Campaign State is the Wiki's front page: fronts and clocks, and other open threads. Factions and the right pane show the clocks they drive.
+- Tests: every new type and hierarchy, clocks, routes, keyed areas, rulings, lore's GM-only truth, accessibility of the new layouts.
+
 ## M1 slice 3: People and groups (2026-09-27)
 - New page types from the reference: Faction, NPC, Player character, Party and Magic item, each with its decided layout (monogram badge, Wants / Fears / Secret or Drive / Burden / Secret, Voice; Public face / Hidden truth and Will do / Won't do; item pills and mechanics box; party members).
 - Lists that build themselves: People here (anywhere inside a place), Members (including branches), Carries, and the party's player characters.

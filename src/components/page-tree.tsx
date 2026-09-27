@@ -44,6 +44,10 @@ export function PageTree({ campaignId, pages }: { campaignId: string; pages: Tre
     .filter((g) => g.pages.length > 0);
   return (
     <nav aria-label="Campaign pages" className={`wiki-side${currentId ? "" : " is-index"}`}>
+      <div className="grp">
+        <div className="gh"><span>Campaign</span></div>
+        <ul><li><div className="tn" style={{ "--d": 0 } as React.CSSProperties}><span className="tw-sp" /><Link href={base} aria-current={path === base ? "page" : undefined}>Campaign State</Link></div></li></ul>
+      </div>
       {groups.map((g) => (
         <div className="grp" key={g.name}>
           <div className="gh"><span>{g.name}</span><span className="mono">{g.pages.length}</span></div>

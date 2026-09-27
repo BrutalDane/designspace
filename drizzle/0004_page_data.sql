@@ -1,0 +1,1 @@
+ALTER TABLE "entry_revision" ADD COLUMN "data" jsonb DEFAULT '{}'::jsonb NOT NULL;

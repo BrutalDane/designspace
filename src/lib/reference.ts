@@ -15,12 +15,12 @@ export const WORKSPACES = [
 /* ---------- Wiki: entry types ----------
  * Copied from the decided reference (reference/wiki-page-design.md, from prototype-v6-types.js). Do not add or rename
  * sections, info fields or parents here without Thor's decision. Keys in CAPITALS are lists the app builds itself.
- * Built so far: places (slice 1) and people and groups (slice 3). Dungeon level, threads, beliefs, lore, bestiary and
- * rules follow in slice 4 (then Faction also gets Deity as an allowed parent, as decided).
+ * All 22 decided types except Campaign State, which is the Wiki's front page rather than a page type of its own.
  */
-export type EntryType = "world" | "region" | "settlement" | "district" | "building" | "site" | "dungeon"
-  | "npc" | "pc" | "party" | "faction" | "item";
-export type Family = "place" | "person" | "faction" | "party" | "item";
+export type EntryType = "world" | "region" | "settlement" | "district" | "building" | "site" | "dungeon" | "level"
+  | "npc" | "pc" | "party" | "faction" | "item"
+  | "arc" | "thread" | "clue" | "deity" | "culture" | "lore" | "creature" | "rule" | "ruling";
+export type Family = "place" | "person" | "faction" | "party" | "item" | "front" | "clue" | "rule" | "doc";
 export type Field = { key: string; label: string };
 export type Group = { name: string; fields: Field[]; gm: boolean };
 export type TypeDef = {
@@ -106,8 +106,15 @@ export const ENTRY_TYPES: Record<EntryType, TypeDef> = {
       G("At the table", [["impression", "First impression"], ["discoveries", "Discoveries"], ["hazards", "Hazards and tension"], ["treasure", "Treasure"], ["ignored", "If the party does nothing"]], true),
     ],
   },
+  level: {
+    ...place, label: "Dungeon level", parents: ["dungeon", "level"], kids: "Sub-levels", info: ["Type", "Parent", "Depth"],
+    groups: [
+      G("The level", [["description", "Description"], ["AREAS", "Keyed areas"], ["sensory", "Sensory details"]]),
+      G("At the table", [["inhabitants", "Who is here"], ["hazards", "Hazards"], ["secrets", "Secrets"]], true),
+    ],
+  },
   faction: {
-    label: "Faction", group: "Factions", fam: "faction", root: true, parents: ["faction"], kids: "Branches",
+    label: "Faction", group: "Factions", fam: "faction", root: true, parents: ["faction", "deity"], kids: "Branches",
     info: ["Type", "Parent", "Leader", "Headquarters", "Scope", "Allies", "Rivals", "Disposition to party"],
     extra: F([["public", "Public face"], ["hidden", "Hidden truth"], ["willdo", "Will do"], ["wont", "Won't do"]]),
     groups: [
@@ -150,6 +157,70 @@ export const ENTRY_TYPES: Record<EntryType, TypeDef> = {
       G("At the table", [["found", "How it is found or opened"], ["pressure", "Pressure it creates"]], true),
     ],
   },
+  arc: {
+    label: "Arc", group: "Threads", fam: "doc", root: true, parents: [], kids: "Threads", info: ["Phase", "Theme"],
+    groups: [
+      G("The arc", [["conflict", "Core conflict"], ["theme", "Theme and questions"], ["acts", "Acts"]]),
+      G("Stakes", [["unresolved", "If unresolved"], ["badly", "If resolved badly"]], true),
+    ],
+  },
+  thread: {
+    label: "Thread / Front", group: "Threads", fam: "front", root: false, parents: ["arc"], kids: "Clues", info: ["Status", "Parent", "Pressure", "Driven by"],
+    groups: [
+      G("The front", [["impulse", "Impulse: why it moves"], ["portents", "Portents"], ["doom", "If ignored"]]),
+      G("At the table", [["signs", "Visible signs"], ["next", "Next beat"], ["use", "GM use"]], true),
+    ],
+  },
+  clue: {
+    label: "Clue / Revelation", group: "Threads", fam: "clue", root: false, parents: ["thread"], info: [],
+    groups: [G("The revelation", [["truth", "The truth it reveals"], ["points", "What it points toward"]])],
+  },
+  deity: {
+    label: "Deity / Religion", group: "Beliefs", fam: "doc", root: true, parents: ["deity"], kids: "Deities and orders",
+    info: ["Domains", "Parent", "Symbol", "Alignment", "Holy day", "Worshipped by"],
+    groups: [
+      G("Faith", [["dogma", "Tenets and dogma"], ["worship", "Worship and rites"], ["priesthood", "Priesthood"], ["holy", "Holy sites"]]),
+      G("Lore", [["myths", "Myths"], ["history", "History"]]),
+      G("At the table", [["campaign", "In this campaign"], ["signs", "Omens and signs"]], true),
+    ],
+  },
+  culture: {
+    label: "Culture", group: "Beliefs", fam: "doc", root: true, parents: ["culture"], kids: "Subcultures",
+    info: ["Found in", "Parent", "Language", "Population", "Related faction"],
+    groups: [
+      G("Identity", [["values", "Values and ideals"], ["names", "Naming traditions"], ["language", "Language"]]),
+      G("Daily life", [["customs", "Customs and etiquette"], ["dress", "Dress"], ["food", "Food and drink"], ["art", "Art and architecture"]]),
+      G("Life and death", [["coming", "Coming of age"], ["funerary", "Funerary customs"]]),
+      G("Place in the world", [["history", "History"], ["outsiders", "How outsiders see them"]]),
+      G("At the table", [["campaign", "In this campaign"]], true),
+    ],
+  },
+  lore: {
+    label: "Lore", group: "World", fam: "doc", root: true, parents: ["lore"], kids: "Events", info: ["Kind", "Parent", "When", "Where", "Involved"],
+    groups: [
+      G("The event", [["happened", "What happened"], ["causes", "Causes"]]),
+      G("Memory", [["believe", "What people believe"], ["now", "Consequences now"]]),
+      G("The truth", [["truth", "The truth"], ["leads", "Where it leads"]], true),
+      G("At the table", [["signs", "Signs at the table"]], true),
+    ],
+  },
+  creature: {
+    label: "Creature", group: "Bestiary", fam: "doc", root: true, parents: ["creature"], kids: "Kinds",
+    info: ["Type", "Parent", "CR", "Habitat", "Stat basis", "Rarity"],
+    groups: [
+      G("Description", [["appearance", "Appearance"]]),
+      G("Ecology", [["why", "Why it is here"], ["ecology", "Ecology and diet"], ["behaviour", "Behaviour"], ["society", "Society"]]),
+      G("At the table", [["situation", "The situation it creates"], ["run", "How to run it"]], true),
+    ],
+  },
+  rule: {
+    label: "Rule reference", group: "Rules", fam: "rule", root: true, parents: ["rule"], kids: "House rulings", info: ["Source", "Parent", "Category"],
+    groups: [G("Rule", [["summary", "Summary"], ["table", "At the table"]])],
+  },
+  ruling: {
+    label: "House ruling", group: "Rules", fam: "doc", root: false, parents: ["rule"], info: ["Parent", "Decided", "Label"],
+    groups: [G("Ruling", [["ruling", "The ruling"], ["why", "Why"]])],
+  },
 };
 
 /** Type groups in tree order (from the prototype); only groups with pages appear. */
@@ -158,14 +229,14 @@ export const PLACE_TYPES = (Object.keys(ENTRY_TYPES) as EntryType[]).filter((t) 
 
 /**
  * Infobox fields that point at another page, and which types they may point at. The editor offers a list of those
- * pages (the GM never types links); they drive the automatic lists People here, Members and Carries.
+ * pages (the GM never types links); they drive the automatic lists People here, Members, Carries and Clocks.
  */
-export const REF_FIELDS: Record<string, EntryType[]> = { Location: PLACE_TYPES, Faction: ["faction"], Holder: ["npc", "pc"] };
+export const REF_FIELDS: Record<string, EntryType[]> = { Location: PLACE_TYPES, Faction: ["faction"], Holder: ["npc", "pc"], "Driven by": ["npc", "faction"] };
 
 /** Image slot label in the infobox, per type (from the prototype). */
 export const INFOBOX_IMAGE: Partial<Record<EntryType, string>> = {
   region: "Map", settlement: "Map", building: "Illustration", site: "Map", dungeon: "Map",
-  npc: "Portrait", pc: "Portrait", faction: "Emblem", item: "Illustration",
+  npc: "Portrait", pc: "Portrait", faction: "Emblem", item: "Illustration", deity: "Holy symbol", culture: "Illustration", creature: "Illustration", lore: "Illustration",
 };
 
 export const isEntryType = (t: string): t is EntryType => Object.hasOwn(ENTRY_TYPES, t);

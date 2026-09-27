@@ -4,11 +4,21 @@ import { changedParts, parsePage } from "../src/lib/validation";
 import { ancestors, buildTree } from "../src/lib/tree";
 
 describe("entry types follow reference/wiki-page-design.md", () => {
-  it("has the decided types built so far (the rest follow in slice 4)", () => {
-    expect(Object.values(ENTRY_TYPES).map((t) => t.label)).toEqual([
-      "World / Plane", "Region", "Settlement", "District", "Building / Landmark", "Site", "Dungeon",
-      "Faction", "NPC", "Player character", "Party", "Magic item",
+  it("has all decided types (Campaign State is the Wiki's front page, not a page type)", () => {
+    expect(Object.values(ENTRY_TYPES).map((t) => t.label).sort()).toEqual([
+      "Arc", "Building / Landmark", "Clue / Revelation", "Creature", "Culture", "Deity / Religion", "District", "Dungeon",
+      "Dungeon level", "Faction", "House ruling", "Lore", "Magic item", "NPC", "Party", "Player character", "Region",
+      "Rule reference", "Settlement", "Site", "Thread / Front", "World / Plane",
     ]);
+  });
+  it("follows the decided hierarchy for threads, beliefs, lore, bestiary and rules", () => {
+    expect(childTypes("arc")).toEqual(["thread"]);
+    expect(childTypes("thread")).toEqual(["clue"]);
+    expect(childTypes("dungeon")).toEqual(["level"]);
+    expect(childTypes("level")).toEqual(["level"]);
+    expect(childTypes("deity")).toEqual(["faction", "deity"]);
+    expect(childTypes("rule")).toEqual(["rule", "ruling"]);
+    for (const t of ["culture", "lore", "creature"] as const) expect(childTypes(t)).toEqual([t]);
   });
   it("uses the decided allowed parents", () => {
     expect(ENTRY_TYPES.world.parents).toEqual([]);
@@ -20,8 +30,9 @@ describe("entry types follow reference/wiki-page-design.md", () => {
     expect(ENTRY_TYPES.dungeon.parents).toEqual(["region", "settlement", "district"]);
   });
   it("only a World / Plane starts the places; factions, people, party and items may sit at the top", () => {
-    expect(childTypes(null)).toEqual(["world", "faction", "npc", "pc", "party", "item"]);
+    expect(childTypes(null)).toEqual(["world", "faction", "npc", "pc", "party", "item", "arc", "deity", "culture", "lore", "creature", "rule"]);
     expect(childTypes("faction")).toEqual(["faction"]);
+    expect(ENTRY_TYPES.faction.parents).toEqual(["faction", "deity"]);
     expect(childTypes("npc")).toEqual([]);
     expect(childTypes("world")).toEqual(["region"]);
     expect(childTypes("region")).toEqual(["region", "settlement", "building", "site", "dungeon"]);
@@ -35,7 +46,10 @@ describe("entry types follow reference/wiki-page-design.md", () => {
     expect(ENTRY_TYPES.npc.extra!.map((f) => f.label)).toEqual(["Wants", "Fears", "Secret", "Voice"]);
     expect(ENTRY_TYPES.pc.extra!.map((f) => f.label)).toEqual(["Drive", "Burden", "Secret (GM)", "Voice"]);
     for (const t of Object.values(ENTRY_TYPES)) {
-      expect(t.groups.filter((g) => g.gm).map((g) => g.name)).toEqual(t.fam === "party" ? [] : ["At the table"]);
+      const gm = t.groups.filter((g) => g.gm).map((g) => g.name);
+      const expected = t.label === "Lore" ? ["The truth", "At the table"] : t.label === "Arc" ? ["Stakes"]
+        : ["Party", "Clue / Revelation", "Rule reference", "House ruling"].includes(t.label) ? [] : ["At the table"];
+      expect(gm, t.label).toEqual(expected);
       const keys = [...(t.extra ?? []), ...t.groups.flatMap((g) => g.fields)].map((f) => f.key);
       expect(new Set(keys).size).toBe(keys.length);
     }
@@ -63,10 +77,10 @@ describe("reading an edited page", () => {
 });
 
 describe("what changed between versions", () => {
-  const v1 = { title: "Vellumis", lead: "A city.", info: {}, sections: { impression: "Bells." } };
+  const v1 = { title: "Vellumis", lead: "A city.", info: {}, sections: { impression: "Bells." }, data: {} };
   it("marks the first version as created", () => expect(changedParts("settlement", undefined, v1)).toEqual(["Created"]));
   it("names the changed parts in page order", () => {
-    const v2 = { title: "Vellumis", lead: "A city of ledgers.", info: { Population: "12,000" }, sections: { impression: "Bells.", religion: "The Ledger God." } };
+    const v2 = { title: "Vellumis", lead: "A city of ledgers.", info: { Population: "12,000" }, sections: { impression: "Bells.", religion: "The Ledger God." }, data: {} };
     expect(changedParts("settlement", v1, v2)).toEqual(["Lead", "Population", "Religion"]);
   });
 });

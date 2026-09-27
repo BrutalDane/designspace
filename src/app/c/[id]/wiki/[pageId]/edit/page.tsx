@@ -4,6 +4,7 @@ import { ENTRY_TYPES, REF_FIELDS, infoFields, writtenFields, type EntryType } fr
 import { ancestors } from "@/lib/tree";
 import { linkIndex, toEditable } from "@/lib/links";
 import { refId } from "@/lib/auto-lists";
+import { dataParts } from "@/lib/page-data";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { savePage } from "../../actions";
 import { EditPageForm } from "./edit-page-form";
@@ -58,6 +59,13 @@ export default async function Page({ params }: Props) {
         info={infoFields(p.type)}
         choices={choices}
         sections={writtenFields(p.type)}
+        structured={{
+          parts: dataParts(p.type),
+          clockPos: p.current.data.clock ? String(p.current.data.clock.pos) : "",
+          portent: p.current.data.clock?.portent ?? "",
+          routes: (p.current.data.routes ?? []).map((r) => r.text).join("\n"),
+          areas: p.current.data.areas ?? [],
+        }}
         cancelHref={`${base}/${p.id}`}
       />
     </section>
