@@ -88,7 +88,9 @@ export async function getVersion(campaignId: string, placeId: string, number: nu
 /** Places a page may move under: allowed parent types only, never itself or anything inside it. */
 export async function validParents(campaignId: string, placeId: string) {
   const [p, places] = await Promise.all([getPlace(campaignId, placeId), listPlaces(campaignId)]);
-  return places.filter((x) => PLACE_TYPES[p.type].parents.includes(x.type) && x.id !== p.id && !ancestors(places, x.id).some((a) => a.id === p.id));
+  return places
+    .filter((x) => PLACE_TYPES[p.type].parents.includes(x.type) && x.id !== p.id && !ancestors(places, x.id).some((a) => a.id === p.id))
+    .sort((a, b) => a.title.localeCompare(b.title));
 }
 
 /** Creates a place inside `parentId` (or at the top of the Wiki) together with its first version. */
