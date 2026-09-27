@@ -14,9 +14,7 @@ Fixed: setup and backup scripts on Windows (see DECISIONS.md / FRICTION.md).
 Nothing.
 
 ## Next session
-1. Small follow-up: hide the password while typing in `gm:create` (FRICTION.md).
-2. CI housekeeping: GitHub warns that actions/checkout@v4 and setup-node@v4 use retired Node 20; move to current versions.
-3. Start M1 slice 1.
+1. M1 slice 1 (see below).
 
 ## Everyday use (Windows PowerShell: type `npm.cmd` instead of `npm`)
 - Start: Docker Desktop running, then `npm.cmd run dev`, open http://localhost:3000.
